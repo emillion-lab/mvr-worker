@@ -1,67 +1,157 @@
+// fish.taxi GPS Worker
+// Endpoints:
+//   POST /gps          — шофьорът праща локация
+//   GET  /gps          — fish.taxi чете всички активни шофьори
+//   POST /status       — шофьорът се включва/изключва (online/offline)
+//   GET  /mvr          — стария MVR proxy (запазен)
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Content-Type': 'application/json; charset=utf-8',
+};
+
+// Secret tokens за всеки шофьор — само те могат да пращат GPS
+// Format: "driver_id:token"
+const DRIVER_TOKENS = {
+  '1': 'fishtaxi_emil_2026_secret',  // Emil M.
+};
+
+// Шофьор се счита offline ако не е пратил GPS > 2 минути
+const OFFLINE_AFTER_MS = 2 * 60 * 1000;
+
 export default {
-  async fetch(request) {
-    const cors = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET',
-      'Content-Type': 'application/json; charset=utf-8',
-    };
-    if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
-
-    const MVR_URLS = [
-      'https://www.mvr.bg/press/%D0%B0%D0%BA%D1%82%D1%83%D0%B0%D0%BB%D0%BD%D0%B0-%D0%B8%D0%BD%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%86%D0%B8%D1%8F/%D0%B0%D0%BA%D1%82%D1%83%D0%B0%D0%BB%D0%BD%D0%B0-%D0%B8%D0%BD%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%86%D0%B8%D1%8F/%D0%BF%D1%8A%D1%82%D0%BD%D0%B0-%D0%BE%D0%B1%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0',
-      'https://www.mvr.bg/press',
-    ];
-    const HDRS = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'bg-BG,bg;q=0.9,en;q=0.8',
-      'Referer': 'https://www.mvr.bg/',
-    };
-    const BG_MONTHS = {'януари':1,'февруари':2,'март':3,'април':4,'май':5,'юни':6,'юли':7,'август':8,'септември':9,'октомври':10,'ноември':11,'декември':12};
-
-    function parseDate(text) {
-      const m = text.toLowerCase().match(/(\d{1,2})\s+(януари|февруари|март|април|май|юни|юли|август|септември|октомври|ноември|декември)\s+(\d{4})/);
-      if (!m) return null;
-      const mo = BG_MONTHS[m[2]];
-      return mo ? `${m[3]}-${String(mo).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}` : null;
+  async fetch(request, env) {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: CORS });
     }
-    function parseAccidents(html) {
-      const t = html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
-      const find = ps => { for(const p of ps){const m=t.match(new RegExp(p,'iu'));if(m)for(const g of m.slice(1))if(g&&/^\d+$/.test(g))return parseInt(g);} return null; };
-      const light=find([/([\d]+)\s+леки\s+(?:пътно)?транспортни/,/([\d]+)\s+леки\s+ПТП/]);
-      const serious=find([/([\d]+)\s+тежки\s+(?:пътно)?транспортни/,/([\d]+)\s+тежки\s+ПТП/]);
-      const dead=find([/([\d]+)\s+(?:са\s+)?загинали/,/([\d]+)\s+(?:човека?\s+)?загина/]);
-      const injured=find([/([\d]+)\s+(?:са\s+)?ранени/,/([\d]+)\s+пострадали/]);
-      return {light,serious,dead,injured,total:light!=null&&serious!=null?light+serious:light};
-    }
-    function extractLinks(html) {
-      const links=[],seen=new Set();
-      for(const pat of[/href="(\/press[^"]*(?:пътна|произшествия)[^"]*)"/gi,/href="(\/press\/[^"]+\/\d{4}\/[^"]+)"/gi,/href="(\/press\/[^"]*актуална[^"]*)"/gi]){
-        let m; while((m=pat.exec(html))!==null){const u='https://www.mvr.bg'+m[1];if(!seen.has(u)){seen.add(u);links.push(u);}}
+
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    // ── POST /gps ── шофьорът праща локация ─────────────────
+    if (path === '/gps' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { driver_id, token, lat, lng, online } = body;
+
+        // Verify token
+        if (!driver_id || !token || DRIVER_TOKENS[driver_id] !== token) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401, headers: CORS
+          });
+        }
+
+        // Validate coords
+        if (typeof lat !== 'number' || typeof lng !== 'number') {
+          return new Response(JSON.stringify({ error: 'Invalid coordinates' }), {
+            status: 400, headers: CORS
+          });
+        }
+
+        // Save to KV
+        const data = {
+          driver_id,
+          lat,
+          lng,
+          online: online !== false,
+          updated_at: Date.now(),
+        };
+
+        await env.GPS_STORE.put(`driver:${driver_id}`, JSON.stringify(data), {
+          expirationTtl: 300  // auto-expire after 5 min if no updates
+        });
+
+        return new Response(JSON.stringify({ ok: true, updated_at: data.updated_at }), {
+          headers: CORS
+        });
+
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), {
+          status: 500, headers: CORS
+        });
       }
-      return links.slice(0,8);
     }
 
-    try {
-      let listHtml=null,listStatus=0;
-      for(const url of MVR_URLS){const r=await fetch(url,{headers:HDRS});listStatus=r.status;if(r.ok){listHtml=await r.text();break;}}
-      if(!listHtml) return new Response(JSON.stringify({error:`MVR HTTP ${listStatus}`,days:[],days_count:0,updated:new Date().toISOString()}),{headers:cors});
+    // ── GET /gps ── fish.taxi чете активните шофьори ─────────
+    if (path === '/gps' && request.method === 'GET') {
+      try {
+        const list = await env.GPS_STORE.list({ prefix: 'driver:' });
+        const drivers = [];
+        const now = Date.now();
 
-      const links=extractLinks(listHtml),days=[];
-      for(const url of links){
-        try{
-          const r=await fetch(url,{headers:HDRS});if(!r.ok)continue;
-          const html=await r.text();
-          const ud=url.match(/\/(\d{4})\/(\d{1,2})\/(\d{1,2})\//);
-          const date=ud?`${ud[1]}-${ud[2].padStart(2,'0')}-${ud[3].padStart(2,'0')}`:parseDate(html.slice(0,4000));
-          if(!date)continue;
-          days.push({date,url,...parseAccidents(html),scraped_at:new Date().toISOString()});
-        }catch(e){}
+        for (const key of list.keys) {
+          const raw = await env.GPS_STORE.get(key.name);
+          if (!raw) continue;
+          const d = JSON.parse(raw);
+          // Mark as offline if no update for 2 min
+          d.online = d.online && (now - d.updated_at) < OFFLINE_AFTER_MS;
+          d.seconds_ago = Math.round((now - d.updated_at) / 1000);
+          drivers.push(d);
+        }
+
+        return new Response(JSON.stringify({
+          ok: true,
+          count: drivers.length,
+          online: drivers.filter(d => d.online).length,
+          drivers,
+          fetched_at: now,
+        }), { headers: CORS });
+
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), {
+          status: 500, headers: CORS
+        });
       }
-      days.sort((a,b)=>b.date.localeCompare(a.date));
-      return new Response(JSON.stringify({updated:new Date().toISOString(),source:'МВР via Cloudflare Worker',days_count:days.length,links_found:links.length,days},null,2),{headers:cors});
-    } catch(e) {
-      return new Response(JSON.stringify({error:e.message,days:[],days_count:0,updated:new Date().toISOString()}),{headers:cors});
     }
+
+    // ── POST /status ── online/offline toggle ─────────────────
+    if (path === '/status' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { driver_id, token, online } = body;
+
+        if (!driver_id || !token || DRIVER_TOKENS[driver_id] !== token) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401, headers: CORS
+          });
+        }
+
+        const raw = await env.GPS_STORE.get(`driver:${driver_id}`);
+        const existing = raw ? JSON.parse(raw) : { driver_id, lat: 42.6977, lng: 23.3219 };
+        existing.online = !!online;
+        existing.updated_at = Date.now();
+
+        await env.GPS_STORE.put(`driver:${driver_id}`, JSON.stringify(existing), {
+          expirationTtl: online ? 300 : 86400
+        });
+
+        return new Response(JSON.stringify({
+          ok: true,
+          status: online ? 'online' : 'offline'
+        }), { headers: CORS });
+
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), {
+          status: 500, headers: CORS
+        });
+      }
+    }
+
+    // ── GET / ── Health check ─────────────────────────────────
+    if (path === '/' || path === '/health') {
+      return new Response(JSON.stringify({
+        service: 'fish.taxi GPS Worker',
+        status: 'ok',
+        version: '1.0',
+        endpoints: ['GET /gps', 'POST /gps', 'POST /status'],
+        time: new Date().toISOString(),
+      }), { headers: CORS });
+    }
+
+    return new Response(JSON.stringify({ error: 'Not found' }), {
+      status: 404, headers: CORS
+    });
   }
 };
