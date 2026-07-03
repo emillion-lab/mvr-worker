@@ -1,0 +1,20 @@
+name: Deploy Worker
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Verify deployed version
+        run: |
+          sleep 5
+          curl -s https://mvr-proxy.mihov-emil.workers.dev/health
