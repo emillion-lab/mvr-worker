@@ -26,11 +26,7 @@ jobs:
             https://api.cloudflare.com/client/v4/user/tokens/verify >> $R
           echo "" >> $R
 
-          echo "--- accounts ---" >> $R
-          ACC_JSON=$(curl -s -H "Authorization: Bearer $CF_TOKEN" https://api.cloudflare.com/client/v4/accounts)
-          echo "$ACC_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'success':d.get('success'),'errors':d.get('errors'),'accounts':[{'id':a['id'],'name':a['name']} for a in (d.get('result') or [])]}))" >> $R
-          ACC=$(echo "$ACC_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); r=d.get('result') or []; print(r[0]['id'] if r else '')")
-          echo "" >> $R
+          ACC="74820d71c551391ce31d309c2fcb091c"
 
           if [ -n "$ACC" ]; then
             echo "--- upload script ---" >> $R
