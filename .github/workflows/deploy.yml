@@ -23,7 +23,7 @@ jobs:
 
           echo "--- token verify ---" >> $R
           curl -s -H "Authorization: Bearer $CF_TOKEN" \
-            https://api.cloudflare.com/client/v4/user/tokens/verify >> $R
+            https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/tokens/verify >> $R
           echo "" >> $R
 
           ACC="74820d71c551391ce31d309c2fcb091c"
