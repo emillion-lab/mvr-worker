@@ -31,6 +31,11 @@ function genToken() {
 }
 
 // Auth: hardcoded legacy tokens first (Emil = "1"), then KV token:{phone}
+async function getAdminPass(env) {
+  const stored = await env.GPS_STORE.get('admin:password');
+  return stored || ADMIN_PASSWORD;
+}
+
 async function checkToken(env, driver_id, token) {
   if (!driver_id || !token) return false;
   if (DRIVER_TOKENS[driver_id] === token) return true;
@@ -199,7 +204,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
     // ── NEW: Admin - list pending registrations ───────────
     if (path === '/admin/pending' && request.method === 'GET') {
       const pass = url.searchParams.get('pass');
-      if (pass !== ADMIN_PASSWORD) {
+      if (pass !== await getAdminPass(env)) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
       }
       try {
@@ -221,7 +226,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       try {
         const body = await request.json();
         const { pass, id, action } = body;
-        if (pass !== ADMIN_PASSWORD) {
+        if (pass !== await getAdminPass(env)) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
         const raw = await env.GPS_STORE.get(`pending:${id}`);
@@ -252,7 +257,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
     // ── NEW: Admin - list approved drivers ────────────────
     if (path === '/admin/approved' && request.method === 'GET') {
       const pass = url.searchParams.get('pass');
-      if (pass !== ADMIN_PASSWORD) {
+      if (pass !== await getAdminPass(env)) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
       }
       try {
@@ -268,8 +273,91 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       }
     }
 
+
+    // ── Admin: директно създаване на шофьор (на доверие) ──
+    if (path === '/admin/add' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { pass, name, phone, car, plate } = body;
+        if (pass !== await getAdminPass(env)) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+        }
+        if (!name || !phone) return new Response(JSON.stringify({ error: 'Missing name/phone' }), { status: 400, headers: CORS });
+        const id = genId();
+        const phoneId = normPhone(phone);
+        const driverToken = genToken();
+        const record = { id, name, phone, car: car || '', plate: plate || '', city: 'sofia',
+          status: 'approved', driver_id: phoneId, token: driverToken,
+          created_at: Date.now(), approved_at: Date.now() };
+        await env.GPS_STORE.put(`token:${phoneId}`, driverToken);
+        await env.GPS_STORE.put(`approved:${id}`, JSON.stringify(record));
+        return new Response(JSON.stringify({ ok: true, driver_id: phoneId, token: driverToken }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
+      }
+    }
+
+    // ── Admin: нов token за шофьор ("смяна на парола") ────
+    if (path === '/admin/retoken' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { pass, driver_id } = body;
+        if (pass !== await getAdminPass(env)) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+        }
+        const phoneId = normPhone(driver_id);
+        const existing = await env.GPS_STORE.get(`token:${phoneId}`);
+        if (!existing) return new Response(JSON.stringify({ error: 'Driver not found' }), { status: 404, headers: CORS });
+        const driverToken = genToken();
+        await env.GPS_STORE.put(`token:${phoneId}`, driverToken);
+        return new Response(JSON.stringify({ ok: true, driver_id: phoneId, token: driverToken }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
+      }
+    }
+
+    // ── Admin: изтриване на шофьор ────────────────────────
+    if (path === '/admin/revoke' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { pass, driver_id } = body;
+        if (pass !== await getAdminPass(env)) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+        }
+        const phoneId = normPhone(driver_id);
+        await env.GPS_STORE.delete(`token:${phoneId}`);
+        await env.GPS_STORE.delete(`driver:${phoneId}`);
+        const list = await env.GPS_STORE.list({ prefix: 'approved:' });
+        for (const key of list.keys) {
+          const raw = await env.GPS_STORE.get(key.name);
+          if (raw && JSON.parse(raw).driver_id === phoneId) await env.GPS_STORE.delete(key.name);
+        }
+        return new Response(JSON.stringify({ ok: true }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
+      }
+    }
+
+    // ── Admin: смяна на admin паролата ────────────────────
+    if (path === '/admin/password' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { pass, new_pass } = body;
+        if (pass !== await getAdminPass(env)) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+        }
+        if (!new_pass || new_pass.length < 8) {
+          return new Response(JSON.stringify({ error: 'Password min 8 chars' }), { status: 400, headers: CORS });
+        }
+        await env.GPS_STORE.put('admin:password', new_pass);
+        return new Response(JSON.stringify({ ok: true }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
+      }
+    }
+
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.2' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.3' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
