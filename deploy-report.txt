@@ -1,8 +1,8 @@
-== Deploy report Fri Jul  3 12:17:49 UTC 2026 ==
+== Deploy report Fri Jul  3 17:26:57 UTC 2026 ==
 --- token verify ---
 {"success":false,"errors":[{"code":1000,"message":"Invalid API Token"}],"messages":[],"result":null}
 --- upload script ---
-{"success": false, "errors": [{"code": 10000, "message": "Authentication error"}]}
+{"success": true, "errors": []}
 
 --- live /health ---
-{"service":"fish.taxi GPS Worker","status":"ok","version":"1.0","time":"2026-07-03T12:17:56.523Z"}
+{"service":"fish.taxi Worker","status":"ok","version":"2.3"}
