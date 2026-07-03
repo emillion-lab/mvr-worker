@@ -5,31 +5,50 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify token & resolve account ID
+      - name: Deploy via Cloudflare API
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          echo "Token verify:"
-          curl -s -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            https://api.cloudflare.com/client/v4/user/tokens/verify
-          echo ""
-          ACC=$(curl -s -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            https://api.cloudflare.com/client/v4/accounts \
-            | python3 -c "import json,sys; d=json.load(sys.stdin); r=d.get('result') or []; print(r[0]['id'] if r else '')")
-          echo "Account ID resolved: ${ACC:0:6}…"
-          echo "CF_ACCOUNT_ID=$ACC" >> $GITHUB_ENV
+          R="deploy-report.txt"
+          echo "== Deploy report $(date -u) ==" > $R
 
-      - name: Deploy to Cloudflare
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ env.CF_ACCOUNT_ID }}
+          echo "--- token verify ---" >> $R
+          curl -s -H "Authorization: Bearer $CF_TOKEN" \
+            https://api.cloudflare.com/client/v4/user/tokens/verify >> $R
+          echo "" >> $R
 
-      - name: Verify deployed version
-        run: |
-          sleep 5
-          curl -s https://mvr-proxy.mihov-emil.workers.dev/health
+          echo "--- accounts ---" >> $R
+          ACC_JSON=$(curl -s -H "Authorization: Bearer $CF_TOKEN" https://api.cloudflare.com/client/v4/accounts)
+          echo "$ACC_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'success':d.get('success'),'errors':d.get('errors'),'accounts':[{'id':a['id'],'name':a['name']} for a in (d.get('result') or [])]}))" >> $R
+          ACC=$(echo "$ACC_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); r=d.get('result') or []; print(r[0]['id'] if r else '')")
+          echo "" >> $R
+
+          if [ -n "$ACC" ]; then
+            echo "--- upload script ---" >> $R
+            curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy" \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              -F 'metadata={"main_module":"worker.js","bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"}],"compatibility_date":"2024-01-01"};type=application/json' \
+              -F "worker.js=@src/worker.js;type=application/javascript+module" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'success':d.get('success'),'errors':d.get('errors')}))" >> $R
+            echo "" >> $R
+            echo "--- live /health ---" >> $R
+            sleep 6
+            curl -s https://mvr-proxy.mihov-emil.workers.dev/health >> $R
+            echo "" >> $R
+          else
+            echo "NO ACCOUNT ID — token cannot list accounts" >> $R
+          fi
+
+          git config user.name "ci"; git config user.email "ci@fish.taxi"
+          git add deploy-report.txt
+          git commit -m "deploy report [skip ci]" || true
+          git push
