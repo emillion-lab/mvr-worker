@@ -17,6 +17,27 @@ function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+// Normalize BG phone to digits-only international: 0888123456 → 359888123456
+function normPhone(p) {
+  let d = String(p || '').replace(/\D/g, '');
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.startsWith('0')) d = '359' + d.slice(1);
+  return d;
+}
+
+function genToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return 'ft_' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Auth: hardcoded legacy tokens first (Emil = "1"), then KV token:{phone}
+async function checkToken(env, driver_id, token) {
+  if (!driver_id || !token) return false;
+  if (DRIVER_TOKENS[driver_id] === token) return true;
+  const stored = await env.GPS_STORE.get(`token:${normPhone(driver_id)}`);
+  return stored !== null && stored === token;
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -28,11 +49,12 @@ export default {
       try {
         const body = await request.json();
         const { driver_id, token, lat, lng, online } = body;
-        if (!driver_id || !token || DRIVER_TOKENS[driver_id] !== token) {
+        if (!(await checkToken(env, driver_id, token))) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
-        const data = { driver_id, lat, lng, online: online !== false, updated_at: Date.now() };
-        await env.GPS_STORE.put(`driver:${driver_id}`, JSON.stringify(data), { expirationTtl: 300 });
+        const did = DRIVER_TOKENS[driver_id] ? driver_id : normPhone(driver_id);
+        const data = { driver_id: did, lat, lng, online: online !== false, updated_at: Date.now() };
+        await env.GPS_STORE.put(`driver:${did}`, JSON.stringify(data), { expirationTtl: 300 });
         return new Response(JSON.stringify({ ok: true }), { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
@@ -61,14 +83,15 @@ export default {
       try {
         const body = await request.json();
         const { driver_id, token, online } = body;
-        if (!driver_id || !token || DRIVER_TOKENS[driver_id] !== token) {
+        if (!(await checkToken(env, driver_id, token))) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
-        const raw = await env.GPS_STORE.get(`driver:${driver_id}`);
-        const existing = raw ? JSON.parse(raw) : { driver_id, lat: 42.6977, lng: 23.3219 };
+        const did = DRIVER_TOKENS[driver_id] ? driver_id : normPhone(driver_id);
+        const raw = await env.GPS_STORE.get(`driver:${did}`);
+        const existing = raw ? JSON.parse(raw) : { driver_id: did, lat: 42.6977, lng: 23.3219 };
         existing.online = !!online;
         existing.updated_at = Date.now();
-        await env.GPS_STORE.put(`driver:${driver_id}`, JSON.stringify(existing), { expirationTtl: online ? 300 : 86400 });
+        await env.GPS_STORE.put(`driver:${did}`, JSON.stringify(existing), { expirationTtl: online ? 300 : 86400 });
         return new Response(JSON.stringify({ ok: true }), { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
@@ -133,8 +156,14 @@ export default {
         if (action === 'approve') {
           record.status = 'approved';
           record.approved_at = Date.now();
+          const phoneId = normPhone(record.phone);
+          const driverToken = genToken();
+          record.driver_id = phoneId;
+          record.token = driverToken;
+          await env.GPS_STORE.put(`token:${phoneId}`, driverToken);
           await env.GPS_STORE.put(`approved:${id}`, JSON.stringify(record));
           await env.GPS_STORE.delete(`pending:${id}`);
+          return new Response(JSON.stringify({ ok: true, driver_id: phoneId, token: driverToken }), { headers: CORS });
         } else if (action === 'reject') {
           await env.GPS_STORE.delete(`pending:${id}`);
         }
@@ -164,7 +193,7 @@ export default {
     }
 
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.0' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.1' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
