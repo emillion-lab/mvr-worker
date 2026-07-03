@@ -356,8 +356,64 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       }
     }
 
+
+    // ── Риск коефициент (KAT логика, кеш 30 мин) ──────────
+    if (path === '/risk' && request.method === 'GET') {
+      try {
+        const cached = await env.GPS_STORE.get('risk:current');
+        if (cached) {
+          return new Response(cached, { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+        // Kp от NOAA
+        let kp = 2;
+        try {
+          const kpResp = await fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json');
+          const kpData = await kpResp.json();
+          kp = parseFloat(kpData[kpData.length - 1][1]) || 2;
+        } catch (e) {}
+        // Налягане София: сега vs преди 24ч (Open-Meteo, безплатно)
+        let dp = 0;
+        try {
+          const pResp = await fetch('https://api.open-meteo.com/v1/forecast?latitude=42.6977&longitude=23.3219&hourly=surface_pressure&past_days=1&forecast_days=1');
+          const pData = await pResp.json();
+          const hrs = pData.hourly.surface_pressure;
+          const nowIdx = new Date().getUTCHours() + 24;
+          dp = Math.abs((hrs[nowIdx] || 0) - (hrs[nowIdx - 24] || 0));
+        } catch (e) {}
+        // Лунна възраст (локална математика)
+        const moonAge = ((Date.now() / 86400000 - 10957.5 + 4.867) % 29.53 + 29.53) % 29.53;
+        const now = new Date(Date.now() + 3 * 3600000); // София ≈ UTC+3 лято
+        const dow = now.getUTCDay();
+        const hour = now.getUTCHours();
+        // KAT формули
+        const kpEff = kp >= 7.5 ? 0.95 : kp >= 6 ? 1.08 : kp >= 5 ? 1.14 : kp >= 3 ? 1.05 : 1.0;
+        const pEff = dp >= 10 ? 1.14 : dp >= 5 ? 1.08 : dp >= 2 ? 1.03 : 1.0;
+        const mNorm = Math.abs(Math.sin((moonAge / 29.53) * Math.PI));
+        const mEff = mNorm > 0.85 ? 1.06 : mNorm > 0.6 ? 1.03 : 1.0;
+        const dEff = [0.82, 0.88, 0.93, 0.98, 1.28, 1.22, 0.78][dow] || 1.0;
+        const inter = (kp >= 5 && dp >= 10) ? 1.08 : 1.0;
+        // Пиков час (добавка за шофьори)
+        const hEff = (hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 19) ? 1.12
+                   : (hour >= 22 || hour <= 4) ? 1.08 : 1.0;
+        const coef = kpEff * pEff * mEff * dEff * inter * hEff;
+        const score = Math.min(10, Math.max(0, Math.round((coef - 0.8) * 12)));
+        const level = score <= 2 ? 0 : score <= 5 ? 1 : score <= 7 ? 2 : 3;
+        const labels = ['Спокойна среда', 'Леко напрежение', 'Повишен стрес', 'Критично'];
+        const result = JSON.stringify({
+          ok: true, coefficient: Math.round(coef * 100) / 100, score, level, label: labels[level],
+          factors: { kp: Math.round(kp * 10) / 10, pressure_delta: Math.round(dp * 10) / 10,
+                     moon_age: Math.round(moonAge * 10) / 10, dow, hour, rush: hEff > 1.0 },
+          kat_url: 'https://emillion-lab.github.io/KAT/', updated: Date.now()
+        });
+        await env.GPS_STORE.put('risk:current', result, { expirationTtl: 1800 });
+        return new Response(result, { headers: { ...CORS, 'Content-Type': 'application/json' } });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: CORS });
+      }
+    }
+
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.3' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.4' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
