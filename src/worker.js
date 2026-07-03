@@ -121,6 +121,81 @@ export default {
       }
     }
 
+    // ── Registration status + one-time token claim (за driver app) ──
+    if (path === '/register/status' && request.method === 'GET') {
+      const id = url.searchParams.get('id');
+      if (!id) return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400, headers: CORS });
+      const claim = await env.GPS_STORE.get(`claim:${id}`);
+      if (claim) {
+        await env.GPS_STORE.delete(`claim:${id}`);
+        const c = JSON.parse(claim);
+        return new Response(JSON.stringify({ ok: true, status: 'approved', driver_id: c.driver_id, token: c.token }), { headers: CORS });
+      }
+      if (await env.GPS_STORE.get(`pending:${id}`)) {
+        return new Response(JSON.stringify({ ok: true, status: 'pending' }), { headers: CORS });
+      }
+      if (await env.GPS_STORE.get(`approved:${id}`)) {
+        return new Response(JSON.stringify({ ok: true, status: 'claimed' }), { headers: CORS });
+      }
+      return new Response(JSON.stringify({ ok: true, status: 'not_found' }), { headers: CORS });
+    }
+
+    // ── Admin панел (HTML) ────────────────────────────────
+    if (path === '/admin' && request.method === 'GET') {
+      const html = `<!DOCTYPE html><html lang="bg"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>fish.taxi Admin</title><style>
+body{font-family:system-ui;background:#0B1220;color:#E6EDF3;margin:0;padding:16px;max-width:600px;margin:auto}
+h1{font-size:20px}input{width:100%;padding:10px;border:1px solid #22C3A6;background:#141E33;color:#E6EDF3;border-radius:8px;box-sizing:border-box;margin-bottom:8px}
+button{padding:10px 16px;border:0;border-radius:8px;font-weight:700;cursor:pointer;margin:4px 4px 4px 0}
+.ok{background:#2E7D32;color:#fff}.no{background:#D32F2F;color:#fff}.load{background:#22C3A6;color:#0B1220}
+.card{background:#141E33;border-radius:12px;padding:14px;margin:10px 0;border:1px solid #223}
+.mu{color:#8899AA;font-size:13px}.tok{font-family:monospace;font-size:12px;background:#0B1220;padding:6px;border-radius:6px;word-break:break-all;margin-top:6px}
+</style></head><body>
+<h1>🐟 fish.taxi — Admin</h1>
+<input id="pass" type="password" placeholder="Admin парола">
+<button class="load" onclick="load()">Зареди заявки</button>
+<div id="out"></div>
+<h2 style="font-size:16px">Одобрени шофьори</h2><div id="appr" class="mu">—</div>
+<script>
+const W=location.origin;
+function esc(s){return String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}
+async function load(){
+  const p=document.getElementById('pass').value;
+  localStorage.setItem('ftp',p);
+  const r=await fetch(W+'/admin/pending?pass='+encodeURIComponent(p)).then(r=>r.json());
+  const out=document.getElementById('out');
+  if(!r.ok){out.innerHTML='<p style="color:#D32F2F">Грешна парола</p>';return}
+  out.innerHTML=r.records.length?'':'<p class="mu">Няма чакащи заявки</p>';
+  for(const rec of r.records){
+    const d=document.createElement('div');d.className='card';
+    d.innerHTML='<b>'+esc(rec.name)+'</b> · '+esc(rec.phone)+'<br><span class="mu">'+esc(rec.car)+' · '+esc(rec.plate)+' · '+new Date(rec.created_at).toLocaleString('bg')+'</span><br>'+
+      '<button class="ok" onclick="act(\''+rec.id+'\',\'approve\',this)">✓ Одобри</button>'+
+      '<button class="no" onclick="act(\''+rec.id+'\',\'reject\',this)">✗ Откажи</button><div class="res"></div>';
+    out.appendChild(d);
+  }
+  loadApproved(p);
+}
+async function loadApproved(p){
+  const r=await fetch(W+'/admin/approved?pass='+encodeURIComponent(p)).then(r=>r.json());
+  if(!r.ok)return;
+  document.getElementById('appr').innerHTML=r.records.map(x=>'<div class="card"><b>'+esc(x.name)+'</b> · '+esc(x.phone)+'<br><span class="mu">'+esc(x.car)+' · '+esc(x.plate)+' · ID: '+esc(x.driver_id||'—')+'</span></div>').join('')||'—';
+}
+async function act(id,action,btn){
+  const p=document.getElementById('pass').value;
+  const r=await fetch(W+'/admin/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,id,action})}).then(r=>r.json());
+  const res=btn.parentElement.querySelector('.res');
+  if(r.ok&&action==='approve'){res.innerHTML='<div class="tok">✓ Одобрен. ID: '+esc(r.driver_id)+'<br>Token (резервно, app-ът си го взима сам): '+esc(r.token)+'</div>'}
+  else if(r.ok){btn.parentElement.remove()}
+  else{res.textContent='Грешка: '+(r.error||'?')}
+}
+if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStorage.getItem('ftp')}
+</script></body></html>`;
+      return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    }
+
+    // ── Admin панел (HTML) END ─────────────────────────────
+
     // ── NEW: Admin - list pending registrations ───────────
     if (path === '/admin/pending' && request.method === 'GET') {
       const pass = url.searchParams.get('pass');
@@ -161,6 +236,7 @@ export default {
           record.driver_id = phoneId;
           record.token = driverToken;
           await env.GPS_STORE.put(`token:${phoneId}`, driverToken);
+          await env.GPS_STORE.put(`claim:${id}`, JSON.stringify({ driver_id: phoneId, token: driverToken }));
           await env.GPS_STORE.put(`approved:${id}`, JSON.stringify(record));
           await env.GPS_STORE.delete(`pending:${id}`);
           return new Response(JSON.stringify({ ok: true, driver_id: phoneId, token: driverToken }), { headers: CORS });
@@ -193,7 +269,7 @@ export default {
     }
 
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.1' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.2' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
