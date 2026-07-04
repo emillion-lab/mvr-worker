@@ -1,8 +1,8 @@
-== Deploy report Sat Jul  4 05:02:03 UTC 2026 ==
+== Deploy report Sat Jul  4 10:59:54 UTC 2026 ==
 --- token verify ---
 {"result":{"id":"6b6d304374eac141751a55dde4694c6c","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
 --- upload script ---
 {"success": true, "errors": []}
 
 --- live /health ---
-{"service":"fish.taxi Worker","status":"ok","version":"2.6"}
+{"service":"fish.taxi Worker","status":"ok","version":"2.7"}
