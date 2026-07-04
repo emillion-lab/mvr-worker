@@ -31,9 +31,14 @@ function genToken() {
 }
 
 // Auth: hardcoded legacy tokens first (Emil = "1"), then KV token:{phone}
-async function getAdminPass(env) {
+// Ако има admin:token в KV — ВАЖИ САМО ТОЙ (паролите са пенсионирани).
+// Иначе: legacy режим (admin:password от KV или константата).
+async function checkAdminPass(env, pass) {
+  if (!pass) return false;
+  const token = await env.GPS_STORE.get('admin:token');
+  if (token) return pass === token;
   const stored = await env.GPS_STORE.get('admin:password');
-  return stored || ADMIN_PASSWORD;
+  return pass === (stored || ADMIN_PASSWORD);
 }
 
 async function checkToken(env, driver_id, token) {
@@ -204,7 +209,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
     // ── NEW: Admin - list pending registrations ───────────
     if (path === '/admin/pending' && request.method === 'GET') {
       const pass = url.searchParams.get('pass');
-      if (pass !== await getAdminPass(env)) {
+      if (!(await checkAdminPass(env, pass))) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
       }
       try {
@@ -226,7 +231,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       try {
         const body = await request.json();
         const { pass, id, action } = body;
-        if (pass !== await getAdminPass(env)) {
+        if (!(await checkAdminPass(env, pass))) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
         const raw = await env.GPS_STORE.get(`pending:${id}`);
@@ -257,7 +262,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
     // ── NEW: Admin - list approved drivers ────────────────
     if (path === '/admin/approved' && request.method === 'GET') {
       const pass = url.searchParams.get('pass');
-      if (pass !== await getAdminPass(env)) {
+      if (!(await checkAdminPass(env, pass))) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
       }
       try {
@@ -279,7 +284,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       try {
         const body = await request.json();
         const { pass, name, phone, car, plate } = body;
-        if (pass !== await getAdminPass(env)) {
+        if (!(await checkAdminPass(env, pass))) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
         if (!name || !phone) return new Response(JSON.stringify({ error: 'Missing name/phone' }), { status: 400, headers: CORS });
@@ -302,7 +307,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       try {
         const body = await request.json();
         const { pass, driver_id } = body;
-        if (pass !== await getAdminPass(env)) {
+        if (!(await checkAdminPass(env, pass))) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
         const phoneId = normPhone(driver_id);
@@ -321,7 +326,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       try {
         const body = await request.json();
         const { pass, driver_id } = body;
-        if (pass !== await getAdminPass(env)) {
+        if (!(await checkAdminPass(env, pass))) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
         const phoneId = normPhone(driver_id);
@@ -343,7 +348,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       try {
         const body = await request.json();
         const { pass, new_pass } = body;
-        if (pass !== await getAdminPass(env)) {
+        if (!(await checkAdminPass(env, pass))) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
         if (!new_pass || new_pass.length < 8) {
@@ -413,7 +418,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
     }
 
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.4' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.5' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
