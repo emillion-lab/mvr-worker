@@ -417,8 +417,47 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       }
     }
 
+
+    // ── Admin: редакция на чакаща заявка ──────────────────
+    if (path === '/admin/update' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { pass, id, name, phone, car, plate } = body;
+        if (!(await checkAdminPass(env, pass))) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+        }
+        const raw = await env.GPS_STORE.get(`pending:${id}`);
+        if (!raw) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
+        const rec = JSON.parse(raw);
+        if (name) rec.name = name;
+        if (phone) rec.phone = phone;
+        if (car !== undefined) rec.car = car;
+        if (plate !== undefined) rec.plate = plate;
+        await env.GPS_STORE.put(`pending:${id}`, JSON.stringify(rec));
+        return new Response(JSON.stringify({ ok: true, record: rec }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
+      }
+    }
+
+    // ── Admin: ротация на token (нов, стар умира) ─────────
+    if (path === '/admin/rotate-token' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        if (!(await checkAdminPass(env, body.pass))) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+        }
+        const bytes = crypto.getRandomValues(new Uint8Array(16));
+        const t = 'fta_' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+        await env.GPS_STORE.put('admin:token', t);
+        return new Response(JSON.stringify({ ok: true, token: t }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
+      }
+    }
+
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.5' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.6' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
