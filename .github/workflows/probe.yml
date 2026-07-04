@@ -1,0 +1,35 @@
+name: HTTP Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        required: true
+      method:
+        required: false
+        default: 'GET'
+      body:
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          R="probe-report.txt"
+          echo "== $(date -u) ${{ github.event.inputs.method }} ==" > $R
+          if [ "${{ github.event.inputs.method }}" = "POST" ]; then
+            curl -s -X POST -H "Content-Type: application/json" \
+              --data '${{ github.event.inputs.body }}' \
+              "${{ github.event.inputs.url }}" -w "\nHTTP %{http_code}\n" >> $R
+          else
+            curl -s "${{ github.event.inputs.url }}" -w "\nHTTP %{http_code}\n" >> $R
+          fi
+          git config user.name ci; git config user.email ci@fish.taxi
+          git add $R && git commit -m "probe [skip ci]" || true
+          git push
