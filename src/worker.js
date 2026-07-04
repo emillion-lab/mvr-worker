@@ -456,8 +456,80 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       }
     }
 
+
+    // ── Analytics beacon (без бисквитки, без трети страни) ──
+    if (path === '/track' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const ev = String(body.event || '').replace(/[^a-z_]/g, '').slice(0, 24);
+        if (!ev) return new Response(JSON.stringify({ ok: false }), { status: 400, headers: CORS });
+        const day = new Date(Date.now() + 3 * 3600000).toISOString().slice(0, 10);
+        const key = `stats:${day}:${ev}`;
+        const cur = parseInt(await env.GPS_STORE.get(key) || '0', 10);
+        await env.GPS_STORE.put(key, String(cur + 1), { expirationTtl: 40 * 86400 });
+        return new Response(JSON.stringify({ ok: true }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false }), { status: 500, headers: CORS });
+      }
+    }
+
+    // ── Анонимно клиентско присъствие (загрубено, TTL 10 мин) ──
+    if (path === '/presence' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        let { lat, lng } = body;
+        lat = Math.round(parseFloat(lat) * 1000) / 1000; // ~110 м
+        lng = Math.round(parseFloat(lng) * 1000) / 1000;
+        if (!isFinite(lat) || !isFinite(lng)) return new Response(JSON.stringify({ ok: false }), { status: 400, headers: CORS });
+        // само около София
+        if (Math.abs(lat - 42.7) > 0.6 || Math.abs(lng - 23.32) > 0.9) {
+          return new Response(JSON.stringify({ ok: true, ignored: true }), { headers: CORS });
+        }
+        await env.GPS_STORE.put(`presence:${genId()}`, JSON.stringify({ lat, lng, t: Date.now() }), { expirationTtl: 600 });
+        return new Response(JSON.stringify({ ok: true }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false }), { status: 500, headers: CORS });
+      }
+    }
+
+    // ── Шофьор: живи клиентски точки (изисква driver token) ──
+    if (path === '/presence' && request.method === 'GET') {
+      const driver_id = url.searchParams.get('driver_id');
+      const token = url.searchParams.get('token');
+      if (!(await checkToken(env, driver_id, token))) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+      }
+      const list = await env.GPS_STORE.list({ prefix: 'presence:' });
+      const dots = [];
+      for (const k of list.keys.slice(0, 50)) {
+        const raw = await env.GPS_STORE.get(k.name);
+        if (raw) dots.push(JSON.parse(raw));
+      }
+      return new Response(JSON.stringify({ ok: true, count: dots.length, dots }), { headers: CORS });
+    }
+
+    // ── Admin: статистика 14 дни ─────────────────────────
+    if (path === '/admin/stats' && request.method === 'GET') {
+      const pass = url.searchParams.get('pass');
+      if (!(await checkAdminPass(env, pass))) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+      }
+      const out = {};
+      for (let i = 0; i < 14; i++) {
+        const day = new Date(Date.now() + 3 * 3600000 - i * 86400000).toISOString().slice(0, 10);
+        const list = await env.GPS_STORE.list({ prefix: `stats:${day}:` });
+        const row = {};
+        for (const k of list.keys) {
+          const ev = k.name.split(':')[2];
+          row[ev] = parseInt(await env.GPS_STORE.get(k.name) || '0', 10);
+        }
+        if (Object.keys(row).length) out[day] = row;
+      }
+      return new Response(JSON.stringify({ ok: true, days: out }), { headers: CORS });
+    }
+
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.6' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.7' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
