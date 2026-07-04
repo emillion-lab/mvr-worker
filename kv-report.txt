@@ -1,2 +1,2 @@
-== KV put admin:token Sat Jul  4 04:48:05 UTC 2026 ==
+== KV delete admin:password Sat Jul  4 04:48:48 UTC 2026 ==
 {"result":null,"errors":[],"messages":[],"success":true}
