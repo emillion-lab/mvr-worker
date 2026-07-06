@@ -528,6 +528,26 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       return new Response(JSON.stringify({ ok: true, days: out }), { headers: CORS });
     }
 
+    if (path === '/mvrfetch') {
+      // Passthrough към mvr.bg — GitHub Actions IP-тата са блокирани от МВР WAF, Cloudflare минава
+      const target = url.searchParams.get('u') || '';
+      let t;
+      try { t = new URL(target); } catch { return new Response(JSON.stringify({ error: 'bad url' }), { status: 400, headers: CORS }); }
+      if (!/(^|\.)mvr\.bg$/.test(t.hostname)) {
+        return new Response(JSON.stringify({ error: 'only mvr.bg allowed' }), { status: 403, headers: CORS });
+      }
+      const upstream = await fetch(t.toString(), {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125 Safari/537.36',
+          'Accept-Language': 'bg-BG,bg;q=0.9',
+          'Accept': 'text/html,application/xhtml+xml',
+        },
+        cf: { cacheTtl: 900, cacheEverything: true },
+      });
+      const body = await upstream.text();
+      return new Response(body, { status: upstream.status, headers: { ...CORS, 'Content-Type': 'text/html; charset=utf-8' } });
+    }
+
     if (path === '/' || path === '/health') {
       return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.7' }), { headers: CORS });
     }
