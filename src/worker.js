@@ -529,12 +529,12 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
     }
 
     if (path === '/mvrfetch') {
-      // Passthrough към mvr.bg — GitHub Actions IP-тата са блокирани от МВР WAF, Cloudflare минава
+      // Passthrough към mvr.bg и chitanka.info (Грамофонче) — GitHub Actions IP-тата са блокирани, Cloudflare минава
       const target = url.searchParams.get('u') || '';
       let t;
       try { t = new URL(target); } catch { return new Response(JSON.stringify({ error: 'bad url' }), { status: 400, headers: CORS }); }
-      if (!/(^|\.)mvr\.bg$/.test(t.hostname)) {
-        return new Response(JSON.stringify({ error: 'only mvr.bg allowed' }), { status: 403, headers: CORS });
+      if (!/(^|\.)mvr\.bg$/.test(t.hostname) && !/(^|\.)chitanka\.info$/.test(t.hostname)) {
+        return new Response(JSON.stringify({ error: 'only mvr.bg / chitanka.info allowed' }), { status: 403, headers: CORS });
       }
       const upstream = await fetch(t.toString(), {
         headers: {
