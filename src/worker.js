@@ -72,7 +72,11 @@ export default {
             const dt = Date.now() - (prev.updated_at || 0);
             const dLat = Math.abs((prev.lat || 0) - lat), dLng = Math.abs((prev.lng || 0) - lng);
             const moved = (dLat + dLng) > 0.0007; // ~60-70 м
-            if (prev.online === data.online && dt < 45000 && !moved) {
+            // Движеща се кола: пишем на всеки цикъл. Паркирала: heartbeat само на 4 мин.
+            if (prev.online === data.online && !moved && dt < 240000) {
+              return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: CORS });
+            }
+            if (prev.online === data.online && moved && dt < 25000) {
               return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: CORS });
             }
           }
@@ -569,7 +573,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
     }
 
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.8' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.8.1' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
