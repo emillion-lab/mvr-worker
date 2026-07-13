@@ -37,7 +37,7 @@ jobs:
             curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/storage/kv/namespaces" >> $R
             echo "" >> $R
             echo "--- WORKERS ---" >> $R
-            curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/workers/scripts" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps([{'id':x['id'],'modified':x.get('modified_on','')} for x in d.get('result',[])]))" >> $R
+            curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/workers/scripts" >> $R
           elif [ "$A" = "listns" ]; then
             NS="${{ github.event.inputs.key }}"
             curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/storage/kv/namespaces/$NS/keys?limit=1000" >> $R
