@@ -1,2 +1,142 @@
-== KV list  Mon Jul 13 14:27:57 UTC 2026 ==
-{"result":[{"name":"admin:token"},{"name":"approved:31373833petar"},{"name":"approved:mr5w4nnvirbwmy"},{"name":"stats:2026-07-06:pageview","expiration":1786774479},{"name":"stats:2026-07-07:pageview","expiration":1786910864},{"name":"stats:2026-07-08:pageview","expiration":1786926571},{"name":"stats:2026-07-09:pageview","expiration":1787015701},{"name":"token:359888588502"},{"name":"token:359897644448"}],"errors":[],"messages":[],"success":true,"result_info":{"count":9,"cursor":""}}
+== KV account  Mon Jul 13 14:32:25 UTC 2026 ==
+--- KV NAMESPACES ---
+{"result":[{"id":"2900a1d9de0f49deac2359e558ba5783","title":"GPS_STORE","supports_url_encoding":true}],"errors":[],"messages":[],"success":true,"result_info":{"count":1,"page":1,"per_page":20,"total_count":1,"total_pages":1}}
+--- WORKERS ---
+{
+  "result": [
+    {
+      "created_on": "2026-04-10T16:27:51.566914Z",
+      "modified_on": "2026-04-10T16:44:52.840495Z",
+      "id": "abrp",
+      "tag": "1e11bc8a62b1442c9fc76201a88aac74",
+      "tags": null,
+      "deployment_id": "",
+      "tail_consumers": null,
+      "logpush": false,
+      "has_assets": true,
+      "has_modules": false,
+      "etag": "",
+      "handlers": [
+        "fetch"
+      ],
+      "last_deployed_from": "",
+      "compatibility_date": "2026-04-10",
+      "usage_model": "standard",
+      "routes": null
+    },
+    {
+      "created_on": "2026-04-10T16:57:45.764324Z",
+      "modified_on": "2026-04-14T12:10:57.893805Z",
+      "id": "bob",
+      "tag": "cc4f54c6c31f420dbd0dd087d4169ba7",
+      "tags": null,
+      "deployment_id": "",
+      "tail_consumers": null,
+      "logpush": false,
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": {
+          "enabled": true,
+          "head_sampling_rate": 1,
+          "persist": true,
+          "invocation_logs": true
+        },
+        "traces": {
+          "enabled": false,
+          "persist": true,
+          "head_sampling_rate": 1
+        }
+      },
+      "has_assets": false,
+      "has_modules": true,
+      "etag": "3edf414f7fa0e96cbd71578dea9659e4be293ca2850b6b98fe91016e40488ce9",
+      "handlers": [
+        "fetch"
+      ],
+      "last_deployed_from": "dash",
+      "compatibility_date": "2026-04-10",
+      "usage_model": "standard",
+      "routes": null
+    },
+    {
+      "created_on": "2026-07-11T04:35:40.591126Z",
+      "modified_on": "2026-07-11T04:35:44.341805Z",
+      "id": "gh-admin",
+      "tag": "29d3262117574c8dbfcd6354d8f789b8",
+      "tags": [],
+      "deployment_id": "",
+      "tail_consumers": null,
+      "logpush": false,
+      "has_assets": false,
+      "has_modules": true,
+      "etag": "2a2c2f7fe93a98bcdcf782af9c9bab0441a486e7662e78262b399f671ec567ac",
+      "handlers": [
+        "fetch"
+      ],
+      "last_deployed_from": "wrangler",
+      "compatibility_date": "2026-01-01",
+      "usage_model": "standard",
+      "routes": null
+    },
+    {
+      "created_on": "2026-06-28T05:51:07.422678Z",
+      "modified_on": "2026-07-13T14:32:17.860647Z",
+      "id": "mvr-proxy",
+      "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
+      "tags": null,
+      "deployment_id": "",
+      "tail_consumers": null,
+      "logpush": false,
+      "has_assets": false,
+      "has_modules": true,
+      "etag": "76543a2a821a5205422991800d1f1dd6e4ba577655610deaee5a829189d8b79e",
+      "handlers": [
+        "fetch"
+      ],
+      "last_deployed_from": "api",
+      "compatibility_date": "2024-01-01",
+      "usage_model": "standard",
+      "routes": null
+    },
+    {
+      "created_on": "2026-04-10T16:54:49.809873Z",
+      "modified_on": "2026-04-10T16:54:51.271281Z",
+      "id": "starter",
+      "tag": "b0d7e7e437b64898af5badc80ad51ff8",
+      "tags": null,
+      "deployment_id": "",
+      "tail_consumers": null,
+      "logpush": false,
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": {
+          "enabled": true,
+          "head_sampling_rate": 1,
+          "persist": true,
+          "invocation_logs": true
+        },
+        "traces": {
+          "enabled": false,
+          "persist": true,
+          "head_sampling_rate": 1
+        }
+      },
+      "has_assets": false,
+      "has_modules": true,
+      "etag": "196041ed1f5b3859037964cc47cd09d34fdc5c37cbf2e01af6bcb3d3fad3d0ed",
+      "handlers": [
+        "fetch"
+      ],
+      "last_deployed_from": "dash_template",
+      "compatibility_date": "2026-04-10",
+      "usage_model": "standard",
+      "routes": null
+    }
+  ],
+  "success": true,
+  "errors": [],
+  "messages": []
+}
+
