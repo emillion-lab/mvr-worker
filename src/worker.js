@@ -64,7 +64,27 @@ export default {
         }
         const did = DRIVER_TOKENS[driver_id] ? driver_id : normPhone(driver_id);
         const data = { driver_id: did, lat, lng, online: online !== false, updated_at: Date.now() };
-        await env.GPS_STORE.put(`driver:${did}`, JSON.stringify(data), { expirationTtl: 300 });
+        // Дедуп: ако сме писали < 45 сек и позицията е почти същата — не хабим запис
+        try {
+          const prevRaw = await env.GPS_STORE.get(`driver:${did}`);
+          if (prevRaw) {
+            const prev = JSON.parse(prevRaw);
+            const dt = Date.now() - (prev.updated_at || 0);
+            const dLat = Math.abs((prev.lat || 0) - lat), dLng = Math.abs((prev.lng || 0) - lng);
+            const moved = (dLat + dLng) > 0.0007; // ~60-70 м
+            if (prev.online === data.online && dt < 45000 && !moved) {
+              return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: CORS });
+            }
+          }
+        } catch (e) {}
+        try {
+          await env.GPS_STORE.put(`driver:${did}`, JSON.stringify(data), { expirationTtl: 300 });
+        } catch (e) {
+          if (String(e).includes('limit')) {
+            return new Response(JSON.stringify({ error: 'Дневният лимит за GPS записи е изчерпан (Cloudflare free план). Работи отново след 03:00 ч. българско време, или трайно с Workers Paid ($5/мес).', quota: true }), { status: 503, headers: CORS });
+          }
+          throw e;
+        }
         return new Response(JSON.stringify({ ok: true }), { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
@@ -410,7 +430,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
                      moon_age: Math.round(moonAge * 10) / 10, dow, hour, rush: hEff > 1.0 },
           kat_url: 'https://emillion-lab.github.io/KAT/', updated: Date.now()
         });
-        await env.GPS_STORE.put('risk:current', result, { expirationTtl: 1800 });
+        try { await env.GPS_STORE.put('risk:current', result, { expirationTtl: 1800 }); } catch (e) {}
         return new Response(result, { headers: { ...CORS, 'Content-Type': 'application/json' } });
       } catch (e) {
         return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: CORS });
@@ -466,7 +486,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
         const day = new Date(Date.now() + 3 * 3600000).toISOString().slice(0, 10);
         const key = `stats:${day}:${ev}`;
         const cur = parseInt(await env.GPS_STORE.get(key) || '0', 10);
-        await env.GPS_STORE.put(key, String(cur + 1), { expirationTtl: 40 * 86400 });
+        try { await env.GPS_STORE.put(key, String(cur + 1), { expirationTtl: 40 * 86400 }); } catch (e) {}
         return new Response(JSON.stringify({ ok: true }), { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ ok: false }), { status: 500, headers: CORS });
@@ -485,7 +505,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
         if (Math.abs(lat - 42.7) > 0.6 || Math.abs(lng - 23.32) > 0.9) {
           return new Response(JSON.stringify({ ok: true, ignored: true }), { headers: CORS });
         }
-        await env.GPS_STORE.put(`presence:${genId()}`, JSON.stringify({ lat, lng, t: Date.now() }), { expirationTtl: 600 });
+        try { await env.GPS_STORE.put(`presence:${genId()}`, JSON.stringify({ lat, lng, t: Date.now() }), { expirationTtl: 600 }); } catch (e) {}
         return new Response(JSON.stringify({ ok: true }), { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ ok: false }), { status: 500, headers: CORS });
@@ -549,7 +569,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
     }
 
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.7' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.8' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
