@@ -1,0 +1,27 @@
+name: CF Inventory
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  inv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          R=cf-inventory.txt
+          echo "== CF inventory $(date) ==" > $R
+          for W in abrp bob gh-admin mvr-proxy starter; do
+            echo "### $W bindings:" >> $R
+            curl -s -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/workers/scripts/$W/settings" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); b=d.get('result',{}).get('bindings',[]); print(json.dumps([{'type':x.get('type'),'name':x.get('name'),'ns':x.get('namespace_id','')} for x in b]))" >> $R 2>>$R
+            echo "### $W cron:" >> $R
+            curl -s -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/workers/scripts/$W/schedules" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d.get('result',{}).get('schedules',d.get('result',[]))))" >> $R 2>>$R
+          done
+          git config user.name ci; git config user.email ci@fish.taxi
+          git add $R && git commit -m "cf inventory [skip ci]" || true
+          git push
