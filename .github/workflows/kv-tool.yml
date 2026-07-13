@@ -32,7 +32,16 @@ jobs:
           K=$(python3 -c "import urllib.parse;print(urllib.parse.quote('${{ github.event.inputs.key }}',safe=''))")
           R="kv-report.txt"
           echo "== KV $A ${{ github.event.inputs.key }} $(date -u) ==" > $R
-          if [ "$A" = "account" ]; then
+          if [ "$A" = "bindings" ]; then
+            for W in abrp bob gh-admin mvr-proxy starter; do
+              echo "=== $W settings ===" >> $R
+              curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/workers/scripts/$W/settings" >> $R
+              echo "" >> $R
+              echo "=== $W schedules ===" >> $R
+              curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/workers/scripts/$W/schedules" >> $R
+              echo "" >> $R
+            done
+          elif [ "$A" = "account" ]; then
             echo "--- KV NAMESPACES ---" >> $R
             curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/storage/kv/namespaces" >> $R
             echo "" >> $R
