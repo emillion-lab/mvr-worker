@@ -1,0 +1,21 @@
+== CF inventory Mon Jul 13 19:39:19 UTC 2026 ==
+### abrp bindings:
+[]
+### abrp cron:
+[]
+### bob bindings:
+[{"type": "secret_text", "name": "ANTHROPIC_API_KEY", "ns": ""}, {"type": "plain_text", "name": "EMIL_PROFILE", "ns": ""}]
+### bob cron:
+[]
+### gh-admin bindings:
+[{"type": "secret_text", "name": "GH_TOKEN", "ns": ""}, {"type": "secret_text", "name": "MCP_KEY", "ns": ""}]
+### gh-admin cron:
+[]
+### mvr-proxy bindings:
+[{"type": "kv_namespace", "name": "GPS_STORE", "ns": "2900a1d9de0f49deac2359e558ba5783"}]
+### mvr-proxy cron:
+[]
+### starter bindings:
+[]
+### starter cron:
+[]
