@@ -1,3 +1,3 @@
-== Sun Jul  5 03:41:30 UTC 2026 GET ==
-{"service":"fish.taxi Worker","status":"ok","version":"2.7"}
+== Mon Jul 13 13:55:26 UTC 2026 GET ==
+{"ok":true,"records":[]}
 HTTP 200
