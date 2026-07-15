@@ -1,3 +1,3 @@
-== Mon Jul 13 14:26:47 UTC 2026 GET ==
-{"ok":true,"days":{"2026-07-09":{"pageview":1},"2026-07-08":{"pageview":1},"2026-07-07":{"pageview":2},"2026-07-06":{"pageview":3}}}
-HTTP 200
+== Wed Jul 15 08:48:17 UTC 2026 GET ==
+{"error":{"code":"usage_limit_reached","message":"Your monthly usage limit has been reached. Please upgrade your Subscription Plan."}}
+HTTP 429
