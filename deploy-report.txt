@@ -1,8 +1,10 @@
-== Deploy report Mon Jul 13 19:35:50 UTC 2026 ==
+== Deploy report Mon Jul 20 06:14:27 UTC 2026 ==
 --- token verify ---
 {"result":{"id":"6b6d304374eac141751a55dde4694c6c","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
 --- upload script ---
-{"success": true, "errors": []}
+{"success": false, "errors": [{"code": 10021, "message": "Uncaught Error: No such module: worker.js\n", "documentation_url": "https://developers.cloudflare.com/workers/observability/errors/#validation-errors-10021"}]}
 
 --- live /health ---
 {"service":"fish.taxi Worker","status":"ok","version":"2.8.1"}
+--- live /flights/SOF ---
+{"error":"Not found"}
