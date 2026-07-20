@@ -26,7 +26,9 @@ jobs:
           src = src.replace(marker, snip + marker)
           # GPS: разредени записи за движеща се кола 25с -> 40с (KV write икономия)
           src = src.replace('dt < 25000', 'dt < 40000')
-          open('/tmp/worker.built.js', 'w').write(src)
+          import os
+          os.makedirs('/tmp/build', exist_ok=True)
+          open('/tmp/build/worker.js', 'w').write(src)
           print('built bytes:', len(src))
           EOF
 
@@ -49,7 +51,7 @@ jobs:
             curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy" \
               -H "Authorization: Bearer $CF_TOKEN" \
               -F 'metadata={"main_module":"worker.js","keep_bindings":["secret_text"],"bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"}],"compatibility_date":"2024-01-01"};type=application/json' \
-              -F "worker.js=@/tmp/worker.built.js;type=application/javascript+module" \
+              -F "worker.js=@/tmp/build/worker.js;type=application/javascript+module" \
               | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'success':d.get('success'),'errors':d.get('errors')}))" >> $R
             echo "" >> $R
             echo "--- live /health ---" >> $R
