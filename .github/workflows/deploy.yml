@@ -14,6 +14,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Build patched worker
+        run: |
+          python3 - <<'EOF'
+          src = open('src/worker.js').read()
+          snip = open('src/flights-snippet.js').read()
+          marker = "    if (path === '/' || path === '/health')"
+          if src.count(marker) != 1:
+              marker = "if (path === '/' || path === '/health')"
+              assert src.count(marker) == 1, 'health-route marker not found'
+          src = src.replace(marker, snip + marker)
+          # GPS: разредени записи за движеща се кола 25с -> 40с (KV write икономия)
+          src = src.replace('dt < 25000', 'dt < 40000')
+          open('/tmp/worker.built.js', 'w').write(src)
+          print('built bytes:', len(src))
+          EOF
+
       - name: Deploy via Cloudflare API
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -32,13 +48,16 @@ jobs:
             echo "--- upload script ---" >> $R
             curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy" \
               -H "Authorization: Bearer $CF_TOKEN" \
-              -F 'metadata={"main_module":"worker.js","bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"}],"compatibility_date":"2024-01-01"};type=application/json' \
-              -F "worker.js=@src/worker.js;type=application/javascript+module" \
+              -F 'metadata={"main_module":"worker.js","keep_bindings":["secret_text"],"bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"}],"compatibility_date":"2024-01-01"};type=application/json' \
+              -F "worker.js=@/tmp/worker.built.js;type=application/javascript+module" \
               | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'success':d.get('success'),'errors':d.get('errors')}))" >> $R
             echo "" >> $R
             echo "--- live /health ---" >> $R
             sleep 6
             curl -s https://mvr-proxy.mihov-emil.workers.dev/health >> $R
+            echo "" >> $R
+            echo "--- live /flights/SOF ---" >> $R
+            curl -s https://mvr-proxy.mihov-emil.workers.dev/flights/SOF | head -c 500 >> $R
             echo "" >> $R
           else
             echo "NO ACCOUNT ID — token cannot list accounts" >> $R
