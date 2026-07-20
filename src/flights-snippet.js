@@ -6,11 +6,13 @@
         const ck = `flights:${iata}`;
         const cached = await env.GPS_STORE.get(ck);
         if (cached) return new Response(cached, { headers: CORS });
-        if (!env.AERODATABOX_KEY) {
+        // Приема и грешно именуван secret с кирилица/интервал ("AERODATABOX КЕУ")
+        const API_KEY = env.AERODATABOX_KEY || env['AERODATABOX КЕУ'] || env['AERODATABOX KEY'];
+        if (!API_KEY) {
           return new Response(JSON.stringify({ error: 'AERODATABOX_KEY secret is not set on mvr-proxy' }), { status: 500, headers: CORS });
         }
         const u = `https://prod.api.market/api/v1/aedbx/aerodatabox/flights/airports/iata/${iata}?offsetMinutes=-90&durationMinutes=360&direction=Arrival&withCancelled=true&withCodeshared=false&withLocation=false`;
-        const resp = await fetch(u, { headers: { 'accept': 'application/json', 'x-magicapi-key': env.AERODATABOX_KEY } });
+        const resp = await fetch(u, { headers: { 'accept': 'application/json', 'x-magicapi-key': API_KEY } });
         if (!resp.ok) {
           const txt = await resp.text();
           return new Response(JSON.stringify({ error: 'AeroDataBox HTTP ' + resp.status, detail: txt.slice(0, 300) }), { status: 502, headers: CORS });
