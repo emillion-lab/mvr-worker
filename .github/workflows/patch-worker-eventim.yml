@@ -1,0 +1,56 @@
+name: patch-worker-eventim
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/patch-worker-eventim.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extend /mvrfetch allowlist with eventim.bg + theatre.art.bg
+        run: |
+          python3 - <<'PYEOF'
+          src = open('src/worker.js', encoding='utf-8').read()
+          old = "      if (!/(^|\\.)mvr\\.bg$/.test(t.hostname) && !/(^|\\.)chitanka\\.info$/.test(t.hostname)) {\n        return new Response(JSON.stringify({ error: 'only mvr.bg / chitanka.info allowed' }), { status: 403, headers: CORS });\n      }"
+          new = "      const ALLOWED = [/(^|\\.)mvr\\.bg$/, /(^|\\.)chitanka\\.info$/, /(^|\\.)eventim\\.bg$/, /(^|\\.)theatre\\.art\\.bg$/];\n      if (!ALLOWED.some(re => re.test(t.hostname))) {\n        return new Response(JSON.stringify({ error: 'host not allowed' }), { status: 403, headers: CORS });\n      }"
+          n = src.count(old)
+          assert n == 1, 'allowlist marker x%d' % n
+          src = src.replace(old, new)
+          open('src/worker.js', 'w', encoding='utf-8').write(src)
+          print('allowlist extended')
+          PYEOF
+
+      - name: Deploy via Cloudflare API
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          python3 - <<'EOF'
+          src=open('src/worker.js').read()
+          snip=open('src/flights-snippet.js').read()
+          marker="    if (path === '/' || path === '/health')"
+          assert src.count(marker)==1
+          src=src.replace(marker, snip+marker)
+          src=src.replace('dt < 25000','dt < 40000')
+          import os; os.makedirs('/tmp/build',exist_ok=True)
+          open('/tmp/build/worker.js','w').write(src)
+          EOF
+          ACC="74820d71c551391ce31d309c2fcb091c"
+          R="deploy-report.txt"; echo "== eventim allowlist deploy $(date -u) ==" > $R
+          curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy" \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            -F 'metadata={"main_module":"worker.js","keep_bindings":["secret_text","plain_text"],"bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"}],"compatibility_date":"2024-01-01"};type=application/json' \
+            -F "worker.js=@/tmp/build/worker.js;type=application/javascript+module" \
+            | python3 -c "import json,sys;d=json.load(sys.stdin);print(json.dumps({'success':d.get('success'),'errors':d.get('errors')}))" >> $R
+          echo "" >> $R
+          sleep 6
+          echo "--- test eventim via proxy ---" >> $R
+          curl -s "https://mvr-proxy.mihov-emil.workers.dev/mvrfetch?u=https%3A%2F%2Fwww.eventim.bg%2Fcity%2F%25D1%2581%25D0%25BE%25D1%2584%25D0%25B8%25D1%258F-7510%2F" -o /tmp/ev.html -w "HTTP %{http_code}, %{size_download} bytes\n" >> $R
+          grep -c "application/ld+json" /tmp/ev.html >> $R 2>/dev/null || echo "0 ld blocks" >> $R
+          git config user.name dep; git config user.email dep@bak
+          git add -A; git commit -m "worker: eventim allowlist + deploy report" || true; git push
