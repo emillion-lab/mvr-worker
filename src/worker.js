@@ -557,8 +557,9 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       const target = url.searchParams.get('u') || '';
       let t;
       try { t = new URL(target); } catch { return new Response(JSON.stringify({ error: 'bad url' }), { status: 400, headers: CORS }); }
-      if (!/(^|\.)mvr\.bg$/.test(t.hostname) && !/(^|\.)chitanka\.info$/.test(t.hostname)) {
-        return new Response(JSON.stringify({ error: 'only mvr.bg / chitanka.info allowed' }), { status: 403, headers: CORS });
+      const ALLOWED = [/(^|\.)mvr\.bg$/, /(^|\.)chitanka\.info$/, /(^|\.)eventim\.bg$/, /(^|\.)theatre\.art\.bg$/];
+      if (!ALLOWED.some(re => re.test(t.hostname))) {
+        return new Response(JSON.stringify({ error: 'host not allowed' }), { status: 403, headers: CORS });
       }
       const upstream = await fetch(t.toString(), {
         headers: {
