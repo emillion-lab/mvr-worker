@@ -1,13 +1,8 @@
-== Deploy report Tue Jul 21 20:15:42 UTC 2026 ==
---- token verify ---
-{"result":{"id":"6b6d304374eac141751a55dde4694c6c","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
---- current bindings (names only) ---
-[{'name': 'AERODATABOX КЕУ', 'type': 'secret_text'}, {'name': 'GPS_STORE', 'type': 'kv_namespace'}]
-
+== Deploy report Tue Jul 21 20:16:03 UTC 2026 ==
 --- upload script ---
 {"success": true, "errors": []}
 
 --- live /health ---
 {"service":"fish.taxi Worker","status":"ok","version":"2.8.1"}
---- live /flights/SOF ---
-{"ok":true,"airport":"SOF","count":24,"updated":1784664951076,"arrivals":[{"number":"BZ 312","airline":"Blue Dart Aviation Ltd.","from":"Tel Aviv Yafo","scheduled":"2026-07-21 22:10+03:00","terminal":"2","gate":null,"baggage":null,"status":"Unknown"},{"number":"FR 3606","airline":"Ryanair","from":"Copenhagen","scheduled":"2026-07-21 22:30+03:00","revised":"2026-07-21 22:24+03:00","terminal":"2","gate":null,"baggage":null,"status":"Arrived"},{"number":"VJT 598","airline":"VistaJet","from":"Unknow
+--- live /scrape eventim (first 200b) ---
+
