@@ -1,7 +1,8 @@
-== eventim allowlist deploy Tue Jul 21 20:39:21 UTC 2026 ==
+== Deploy report Tue Jul 21 21:49:33 UTC 2026 ==
+--- upload script ---
 {"success": true, "errors": []}
 
---- test eventim via proxy ---
-HTTP 403, 47 bytes
-0
-0 ld blocks
+--- live /health ---
+{"service":"fish.taxi Worker","status":"ok","version":"2.8.1"}
+--- live /scrape eventim (first 200b) ---
+{"error":"Not found"}
