@@ -4,14 +4,14 @@
         const target = url.searchParams.get('url');
         if (!target) return new Response(JSON.stringify({ error: 'missing ?url=' }), { status: 400, headers: CORS });
         // allowlist — само разрешени домейни, за да не е отворено прокси
-        const ALLOW = ['eventim.bg', 'www.eventim.bg', 'public-api.eventim.com', 'ndk.bg', 'www.ndk.bg', 'bilet.bg', 'www.bilet.bg', 'arenaarmeecsofia.net', 'www.arenaarmeecsofia.net'];
+        const ALLOW = ['eventim.bg', 'www.eventim.bg', 'public-api.eventim.com', 'ndk.bg', 'www.ndk.bg', 'bilet.bg', 'www.bilet.bg', 'api.bilet.bg', 'arenaarmeecsofia.net', 'www.arenaarmeecsofia.net', 'theatre.art.bg', 'www.theatre.art.bg'];
         let host;
         try { host = new URL(target).hostname; } catch (e) { return new Response(JSON.stringify({ error: 'bad url' }), { status: 400, headers: CORS }); }
         if (!ALLOW.includes(host)) return new Response(JSON.stringify({ error: 'host not allowed', host }), { status: 403, headers: CORS });
         const ck = 'scrape:' + target;
         const cached = await env.GPS_STORE.get(ck);
         if (cached && url.searchParams.get('fresh') !== '1') return new Response(cached, { headers: { ...CORS, 'X-Cache': 'HIT' } });
-        const isApi = host === 'public-api.eventim.com';
+        const isApi = host === 'public-api.eventim.com' || host.startsWith('api.') || target.includes('/api/') || target.includes('graphql');
         const resp = await fetch(target, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
