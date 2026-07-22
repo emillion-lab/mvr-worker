@@ -1,8 +1,8 @@
-== Deploy report Tue Jul 21 21:49:33 UTC 2026 ==
+== Deploy report Wed Jul 22 09:56:23 UTC 2026 ==
 --- upload script ---
 {"success": true, "errors": []}
 
 --- live /health ---
 {"service":"fish.taxi Worker","status":"ok","version":"2.8.1"}
 --- live /scrape eventim (first 200b) ---
-{"error":"Not found"}
+
