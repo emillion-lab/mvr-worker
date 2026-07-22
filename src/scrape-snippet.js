@@ -4,7 +4,7 @@
         const target = url.searchParams.get('url');
         if (!target) return new Response(JSON.stringify({ error: 'missing ?url=' }), { status: 400, headers: CORS });
         // allowlist — само разрешени домейни, за да не е отворено прокси
-        const ALLOW = ['eventim.bg', 'www.eventim.bg', 'public-api.eventim.com', 'ndk.bg', 'www.ndk.bg', 'bilet.bg', 'www.bilet.bg', 'api.bilet.bg', 'arenaarmeecsofia.net', 'www.arenaarmeecsofia.net', 'theatre.art.bg', 'www.theatre.art.bg', 'bgfutbol.com', 'www.bgfutbol.com', 'visitsofia.bg', 'www.visitsofia.bg', 'sofia.bg', 'www.sofia.bg'];
+        const ALLOW = ['eventim.bg', 'www.eventim.bg', 'public-api.eventim.com', 'ndk.bg', 'www.ndk.bg', 'bilet.bg', 'www.bilet.bg', 'arenaarmeecsofia.net', 'www.arenaarmeecsofia.net', 'theatre.art.bg', 'www.theatre.art.bg', 'gong.bg', 'www.gong.bg', 'visitsofia.bg', 'www.visitsofia.bg', 'sofia.bg', 'www.sofia.bg'];
         let host;
         try { host = new URL(target).hostname; } catch (e) { return new Response(JSON.stringify({ error: 'bad url' }), { status: 400, headers: CORS }); }
         if (!ALLOW.includes(host)) return new Response(JSON.stringify({ error: 'host not allowed', host }), { status: 403, headers: CORS });
