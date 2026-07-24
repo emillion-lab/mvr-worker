@@ -1,2 +1,5 @@
-FAIL котвата /scrape не е намерена
+намерени пътища: /admin, /gps, /health, /mvrfetch, /presence, /register, /risk, /status, /track
+форми на рутиране: path === '/...' x23
+вмъквам преди ред 58 (отстъп 4 интервала)
+OK /traffic вмъкнат
 SYNTAX OK

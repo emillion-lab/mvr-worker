@@ -55,6 +55,57 @@ export default {
     const path = url.pathname;
 
     // ── GPS endpoints (existing) ──────────────────────────
+    // ── TomTom трафик по отсечки (кеш 3 мин; ключът е Worker secret) ──
+    if (path === '/traffic' && request.method === 'GET') {
+      try {
+        if (!env.TOMTOM_KEY) {
+          return new Response(JSON.stringify({ error: 'TOMTOM_KEY не е зададен' }),
+            { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+        const pts = url.searchParams.get('pts');
+        if (!pts) {
+          return new Response(JSON.stringify({ error: 'missing ?pts=lat,lng;lat,lng' }),
+            { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+        const list = pts.split(';').slice(0, 12);
+        const out = [];
+        for (const p of list) {
+          const parts = p.split(',');
+          const la = parseFloat(parts[0]), ln = parseFloat(parts[1]);
+          if (!isFinite(la) || !isFinite(ln)) { out.push(null); continue; }
+          const ck = 'tt:' + la.toFixed(4) + ',' + ln.toFixed(4);
+          const cached = await env.GPS_STORE.get(ck);
+          if (cached && url.searchParams.get('fresh') !== '1') {
+            try { out.push(JSON.parse(cached)); continue; } catch (e) {}
+          }
+          const tu = 'https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json'
+                   + '?key=' + env.TOMTOM_KEY + '&point=' + la + ',' + ln + '&unit=KMPH';
+          let item;
+          try {
+            const r = await fetch(tu, { cf: { cacheTtl: 120, cacheEverything: true } });
+            if (!r.ok) { item = { err: r.status }; }
+            else {
+              const d = await r.json();
+              const f = (d && d.flowSegmentData) || {};
+              const cur = f.currentSpeed, free = f.freeFlowSpeed;
+              item = { cur: cur, free: free, curT: f.currentTravelTime, freeT: f.freeFlowTravelTime,
+                       conf: f.confidence, closed: !!f.roadClosure,
+                       ratio: (free ? Math.round((cur / free) * 100) / 100 : null) };
+            }
+          } catch (e) { item = { err: String(e).slice(0, 60) }; }
+          if (!item.err) {
+            try { await env.GPS_STORE.put(ck, JSON.stringify(item), { expirationTtl: 180 }); } catch (e) {}
+          }
+          out.push(item);
+        }
+        return new Response(JSON.stringify({ updated: new Date().toISOString(), data: out }),
+          { headers: { ...CORS, 'Content-Type': 'application/json' } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }),
+          { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+      }
+    }
+
     if (path === '/gps' && request.method === 'POST') {
       try {
         const body = await request.json();
