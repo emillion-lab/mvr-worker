@@ -96,6 +96,10 @@ export default {
           if (cached && url.searchParams.get('fresh') !== '1') {
             try { out.push(JSON.parse(cached)); continue; } catch (e) {}
           }
+          // нощем (23:00–06:00 софийско) кешираме много по-дълго
+          const sofiaH = (new Date().getUTCHours() + 3) % 24;
+          const TT_NIGHT = (sofiaH >= 23 || sofiaH < 6);
+          const TT_TTL = TT_NIGHT ? 1800 : 240;
           // дневен предпазител за безплатната квота
           const TT_DAILY_CAP = 2200;
           const dayKey = 'tt:count:' + new Date().toISOString().slice(0, 10);
@@ -143,7 +147,7 @@ export default {
             }
           } catch (e) { item = { err: String(e).slice(0, 60) }; }
           if (!item.err) {
-            try { await env.GPS_STORE.put(ck, JSON.stringify(item), { expirationTtl: 240 }); } catch (e) {}
+            try { await env.GPS_STORE.put(ck, JSON.stringify(item), { expirationTtl: TT_TTL }); } catch (e) {}
             // резервен запис за 24ч — ползва се ако свърши квотата
             try { await env.GPS_STORE.put('tt:last:' + ck, JSON.stringify(item), { expirationTtl: 86400 }); } catch (e) {}
             try { await env.GPS_STORE.put(dayKey, String(used + 1), { expirationTtl: 172800 }); } catch (e) {}
