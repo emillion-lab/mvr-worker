@@ -6,6 +6,7 @@ on:
       - 'patch_traffic.py'
       - 'patch_traffic_kv.py'
       - 'patch_traffic_coords.py'
+      - 'patch_traffic_quota.py'
       - '.github/workflows/patch-traffic.yml'
 
 permissions:
@@ -25,10 +26,12 @@ jobs:
         run: python3 patch_traffic_kv.py | tee -a traffic-patch-report.txt
       - name: Segment geometry
         run: python3 patch_traffic_coords.py | tee -a traffic-patch-report.txt
+      - name: Quota guard
+        run: python3 patch_traffic_quota.py | tee -a traffic-patch-report.txt
       - name: Syntax check
         run: node --check src/worker.js && echo "SYNTAX OK" >> traffic-patch-report.txt
       - name: Commit
         run: |
           git config user.name traffic-bot; git config user.email traffic@mvr
           git add src/worker.js traffic-patch-report.txt
-          git diff --cached --quiet || (git commit -m "worker: геометрия на отсечките" && git push)
+          git diff --cached --quiet || (git commit -m "worker: quota guard" && git push)
