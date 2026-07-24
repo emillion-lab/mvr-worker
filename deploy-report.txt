@@ -1,8 +1,10 @@
-== Deploy report Fri Jul 24 06:54:38 UTC 2026 ==
+== Deploy report Fri Jul 24 06:59:47 UTC 2026 ==
 --- upload script ---
 {"success": true, "errors": []}
 
 --- live /health ---
 {"service":"fish.taxi Worker","status":"ok","version":"2.8.1"}
+--- live /traffic (Цариградско) ---
+{"error":"TOMTOM_KEY липсва","hint":"сложи го като Worker secret ИЛИ в KV с ключ TOMTOM_KEY"}
 --- live /scrape eventim (first 200b) ---
 
