@@ -8,6 +8,7 @@ on:
       - 'patch_traffic_coords.py'
       - 'patch_traffic_quota.py'
       - 'patch_traffic_night.py'
+      - 'patch_traffic_more.py'
       - '.github/workflows/patch-traffic.yml'
 
 permissions:
@@ -31,10 +32,12 @@ jobs:
         run: python3 patch_traffic_quota.py | tee -a traffic-patch-report.txt
       - name: Night mode
         run: python3 patch_traffic_night.py | tee -a traffic-patch-report.txt
+      - name: Adaptive schedule
+        run: python3 patch_traffic_more.py | tee -a traffic-patch-report.txt
       - name: Syntax check
         run: node --check src/worker.js && echo "SYNTAX OK" >> traffic-patch-report.txt
       - name: Commit
         run: |
           git config user.name traffic-bot; git config user.email traffic@mvr
           git add src/worker.js traffic-patch-report.txt
-          git diff --cached --quiet || (git commit -m "worker: нощен режим" && git push)
+          git diff --cached --quiet || (git commit -m "worker: адаптивен график" && git push)
