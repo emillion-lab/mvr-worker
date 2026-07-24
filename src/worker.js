@@ -85,7 +85,7 @@ export default {
           return new Response(JSON.stringify({ error: 'missing ?pts=lat,lng;lat,lng' }),
             { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
-        const list = pts.split(';').slice(0, 12);
+        const list = pts.split(';').slice(0, 20);
         const out = [];
         for (const p of list) {
           const parts = p.split(',');
@@ -97,11 +97,17 @@ export default {
             try { out.push(JSON.parse(cached)); continue; } catch (e) {}
           }
           // нощем (23:00–06:00 софийско) кешираме много по-дълго
+          // TT_SCHEDULE — кешът следва натоварването на деня
           const sofiaH = (new Date().getUTCHours() + 3) % 24;
-          const TT_NIGHT = (sofiaH >= 23 || sofiaH < 6);
-          const TT_TTL = TT_NIGHT ? 1800 : 240;
+          let TT_TTL;
+          if (sofiaH >= 23 || sofiaH < 6) TT_TTL = 3600;                    // нощ: 60 мин
+          else if (sofiaH >= 21) TT_TTL = 1800;                             // късна вечер: 30 мин
+          else if ((sofiaH >= 8 && sofiaH < 10) ||
+                   (sofiaH >= 17 && sofiaH < 19)) TT_TTL = 300;             // пик: 5 мин
+          else TT_TTL = 600;                                                // ден: 10 мин
+          const TT_NIGHT = (TT_TTL >= 1800);
           // дневен предпазител за безплатната квота
-          const TT_DAILY_CAP = 2200;
+          const TT_DAILY_CAP = 2400;
           const dayKey = 'tt:count:' + new Date().toISOString().slice(0, 10);
           let used = 0;
           try { used = parseInt((await env.GPS_STORE.get(dayKey)) || '0', 10) || 0; } catch (e) {}
