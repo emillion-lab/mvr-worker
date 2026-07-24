@@ -42,13 +42,16 @@ jobs:
           echo "--- upload script ---" >> $R
           curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy" \
             -H "Authorization: Bearer $CF_TOKEN" \
-            -F 'metadata={"main_module":"worker.js","keep_bindings":["secret_text","plain_text"],"bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"}],"compatibility_date":"2024-01-01"};type=application/json' \
+            -F 'metadata={"main_module":"worker.js","keep_bindings":["secret_text","plain_text"],"bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"},{"type":"d1","name":"CONFIG_DB","id":"06dc84d5-384c-44a6-8025-3884c4bbdc88"}],"compatibility_date":"2024-01-01"};type=application/json' \
             -F "worker.js=@/tmp/build/worker.js;type=application/javascript+module" \
             | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'success':d.get('success'),'errors':d.get('errors')}))" >> $R
           echo "" >> $R
           echo "--- live /health ---" >> $R
           sleep 6
           curl -s https://mvr-proxy.mihov-emil.workers.dev/health >> $R
+          echo "" >> $R
+          echo "--- live /traffic (Цариградско) ---" >> $R
+          curl -s "https://mvr-proxy.mihov-emil.workers.dev/traffic?pts=42.6752,23.3587" | head -c 400 >> $R
           echo "" >> $R
           echo "--- live /scrape eventim (first 200b) ---" >> $R
           curl -s "https://mvr-proxy.mihov-emil.workers.dev/scrape?url=https://www.eventim.bg/city/%D1%81%D0%BE%D1%84%D0%B8%D1%8F-7510/" | head -c 200 >> $R
