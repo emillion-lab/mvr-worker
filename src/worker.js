@@ -118,7 +118,7 @@ export default {
             out.push({ err: 'quota', used: used });
             continue;
           }
-          const tu = 'https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json'
+          const tu = 'https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/8/json'
                    + '?key=' + TT + '&point=' + la + ',' + ln + '&unit=KMPH';
           let item;
           try {
