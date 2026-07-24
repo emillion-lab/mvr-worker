@@ -61,14 +61,22 @@ export default {
     if (path === '/traffic' && request.method === 'GET') {
       try {
         let TT = env.TOMTOM_KEY || TT_KEY_CACHE;
+        if (!TT && env.CONFIG_DB) {
+          try {
+            const row = await env.CONFIG_DB
+              .prepare('SELECT v FROM secrets WHERE k = ?')
+              .bind('TOMTOM_KEY').first();
+            if (row && row.v) TT = row.v;
+          } catch (e) {}
+        }
         if (!TT) {
           try { TT = await env.GPS_STORE.get('TOMTOM_KEY'); } catch (e) {}
-          if (TT) TT_KEY_CACHE = TT;
         }
+        if (TT) TT_KEY_CACHE = TT;
         if (!TT) {
           return new Response(JSON.stringify({
               error: 'TOMTOM_KEY липсва',
-              hint: 'сложи го като Worker secret ИЛИ в KV с ключ TOMTOM_KEY'
+              hint: 'очаква се в D1 CONFIG_DB.secrets, KV или Worker secret'
             }),
             { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
