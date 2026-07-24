@@ -1,0 +1,59 @@
+name: traffic-check
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/traffic-check.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test /traffic for all segments
+        run: |
+          R="traffic-check.txt"
+          echo "== Traffic check $(date -u) ==" > $R
+          B="https://mvr-proxy.mihov-emil.workers.dev/traffic"
+          echo "" >> $R
+          echo "--- Цариградско (хотел Плиска) ---" >> $R
+          curl -s "$B?pts=42.6752,23.3587&fresh=1" >> $R
+          echo "" >> $R
+          echo "--- четирите отсечки наведнъж ---" >> $R
+          curl -s "$B?pts=42.6906,23.3374;42.6752,23.3587;42.6745,23.3028;42.7049,23.3239" >> $R
+          echo "" >> $R
+          echo "--- разчитане ---" >> $R
+          curl -s "$B?pts=42.6752,23.3587" | python3 -c "
+import json,sys
+try:
+    d = json.load(sys.stdin)
+except Exception as e:
+    print('НЕ Е JSON:', e); raise SystemExit
+if d.get('error'):
+    print('ГРЕШКА:', d['error']); raise SystemExit
+x = (d.get('data') or [None])[0]
+if not x:
+    print('няма данни'); raise SystemExit
+if x.get('err'):
+    code = x['err']
+    print('TomTom върна', code, {401:'= ключът не се приема',403:'= няма право за този продукт',
+                                 429:'= надвишена квота'}.get(code, ''))
+else:
+    cur, free, r = x.get('cur'), x.get('free'), x.get('ratio')
+    print('РАБОТИ ✅')
+    print('  текуща скорост: %s км/ч' % cur)
+    print('  нормална:       %s км/ч' % free)
+    print('  съотношение:    %s' % r)
+    if r is not None:
+        st = ('свободно' if r>=0.85 else 'леко забавяне' if r>=0.65
+              else 'бавно' if r>=0.45 else 'задръстено' if r>=0.30 else 'тежко задръстване')
+        print('  статус:         %s' % st)
+" >> $R
+          cat $R
+          git config user.name ci; git config user.email ci@fish.taxi
+          git add $R
+          git commit -m "traffic check [skip ci]" || true
+          git push
