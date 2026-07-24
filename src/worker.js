@@ -96,6 +96,18 @@ export default {
           if (cached && url.searchParams.get('fresh') !== '1') {
             try { out.push(JSON.parse(cached)); continue; } catch (e) {}
           }
+          // дневен предпазител за безплатната квота
+          const TT_DAILY_CAP = 2200;
+          const dayKey = 'tt:count:' + new Date().toISOString().slice(0, 10);
+          let used = 0;
+          try { used = parseInt((await env.GPS_STORE.get(dayKey)) || '0', 10) || 0; } catch (e) {}
+          if (used >= TT_DAILY_CAP) {
+            let stale = null;
+            try { stale = await env.GPS_STORE.get('tt:last:' + ck); } catch (e) {}
+            if (stale) { try { out.push(JSON.parse(stale)); continue; } catch (e) {} }
+            out.push({ err: 'quota', used: used });
+            continue;
+          }
           const tu = 'https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json'
                    + '?key=' + TT + '&point=' + la + ',' + ln + '&unit=KMPH';
           let item;
@@ -131,7 +143,10 @@ export default {
             }
           } catch (e) { item = { err: String(e).slice(0, 60) }; }
           if (!item.err) {
-            try { await env.GPS_STORE.put(ck, JSON.stringify(item), { expirationTtl: 180 }); } catch (e) {}
+            try { await env.GPS_STORE.put(ck, JSON.stringify(item), { expirationTtl: 240 }); } catch (e) {}
+            // резервен запис за 24ч — ползва се ако свърши квотата
+            try { await env.GPS_STORE.put('tt:last:' + ck, JSON.stringify(item), { expirationTtl: 86400 }); } catch (e) {}
+            try { await env.GPS_STORE.put(dayKey, String(used + 1), { expirationTtl: 172800 }); } catch (e) {}
           }
           out.push(item);
         }
@@ -522,7 +537,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
                      moon_age: Math.round(moonAge * 10) / 10, dow, hour, rush: hEff > 1.0 },
           kat_url: 'https://emillion-lab.github.io/KAT/', updated: Date.now()
         });
-        try { await env.GPS_STORE.put('risk:current', result, { expirationTtl: 1800 }); } catch (e) {}
+        try { await env.GPS_STORE.put('risk:current', result, { expirationTtl: 2400 }); } catch (e) {}
         return new Response(result, { headers: { ...CORS, 'Content-Type': 'application/json' } });
       } catch (e) {
         return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: CORS });
