@@ -5,7 +5,7 @@ on:
     paths:
       - 'patch_traffic.py'
       - 'patch_traffic_kv.py'
-      - 'patch_traffic_d1.py'
+      - 'patch_traffic_coords.py'
       - '.github/workflows/patch-traffic.yml'
 
 permissions:
@@ -19,19 +19,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: /traffic ендпойнт
-        run: python3 patch_traffic.py > /tmp/r1.txt 2>&1 || true
-      - name: KV четене
-        run: python3 patch_traffic_kv.py > /tmp/r2.txt 2>&1 || true
-      - name: D1 четене
-        run: python3 patch_traffic_d1.py > /tmp/r3.txt 2>&1 || true
-      - name: Отчет
-        run: |
-          cat /tmp/r1.txt /tmp/r2.txt /tmp/r3.txt > traffic-patch-report.txt
-          node --check src/worker.js && echo "SYNTAX OK" >> traffic-patch-report.txt
-          cat traffic-patch-report.txt
+      - name: /traffic endpoint
+        run: python3 patch_traffic.py | tee traffic-patch-report.txt
+      - name: KV key lookup
+        run: python3 patch_traffic_kv.py | tee -a traffic-patch-report.txt
+      - name: Segment geometry
+        run: python3 patch_traffic_coords.py | tee -a traffic-patch-report.txt
+      - name: Syntax check
+        run: node --check src/worker.js && echo "SYNTAX OK" >> traffic-patch-report.txt
       - name: Commit
         run: |
           git config user.name traffic-bot; git config user.email traffic@mvr
           git add src/worker.js traffic-patch-report.txt
-          git diff --cached --quiet || (git commit -m "worker: /traffic + D1 ключ" && git push)
+          git diff --cached --quiet || (git commit -m "worker: геометрия на отсечките" && git push)
