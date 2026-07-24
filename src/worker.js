@@ -1,4 +1,6 @@
 // fish.taxi GPS + Registration Worker
+let TT_KEY_CACHE = null;
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -58,8 +60,16 @@ export default {
     // ── TomTom трафик по отсечки (кеш 3 мин; ключът е Worker secret) ──
     if (path === '/traffic' && request.method === 'GET') {
       try {
-        if (!env.TOMTOM_KEY) {
-          return new Response(JSON.stringify({ error: 'TOMTOM_KEY не е зададен' }),
+        let TT = env.TOMTOM_KEY || TT_KEY_CACHE;
+        if (!TT) {
+          try { TT = await env.GPS_STORE.get('TOMTOM_KEY'); } catch (e) {}
+          if (TT) TT_KEY_CACHE = TT;
+        }
+        if (!TT) {
+          return new Response(JSON.stringify({
+              error: 'TOMTOM_KEY липсва',
+              hint: 'сложи го като Worker secret ИЛИ в KV с ключ TOMTOM_KEY'
+            }),
             { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
         const pts = url.searchParams.get('pts');
@@ -79,7 +89,7 @@ export default {
             try { out.push(JSON.parse(cached)); continue; } catch (e) {}
           }
           const tu = 'https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json'
-                   + '?key=' + env.TOMTOM_KEY + '&point=' + la + ',' + ln + '&unit=KMPH';
+                   + '?key=' + TT + '&point=' + la + ',' + ln + '&unit=KMPH';
           let item;
           try {
             const r = await fetch(tu, { cf: { cacheTtl: 120, cacheEverything: true } });
