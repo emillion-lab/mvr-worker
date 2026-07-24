@@ -106,9 +106,28 @@ export default {
               const d = await r.json();
               const f = (d && d.flowSegmentData) || {};
               const cur = f.currentSpeed, free = f.freeFlowSpeed;
+              const rawC = (f.coordinates && f.coordinates.coordinate) || [];
+              // прореждаме до ~90 точки, за да не тежи в KV
+              const step = rawC.length > 90 ? Math.ceil(rawC.length / 90) : 1;
+              const coords = [];
+              for (let i = 0; i < rawC.length; i += step) {
+                const c = rawC[i];
+                if (c && c.latitude != null) {
+                  coords.push([Math.round(c.latitude * 1e5) / 1e5,
+                               Math.round(c.longitude * 1e5) / 1e5]);
+                }
+              }
+              if (rawC.length && coords.length && step > 1) {
+                const last = rawC[rawC.length - 1];
+                if (last && last.latitude != null) {
+                  coords.push([Math.round(last.latitude * 1e5) / 1e5,
+                               Math.round(last.longitude * 1e5) / 1e5]);
+                }
+              }
               item = { cur: cur, free: free, curT: f.currentTravelTime, freeT: f.freeFlowTravelTime,
-                       conf: f.confidence, closed: !!f.roadClosure,
-                       ratio: (free ? Math.round((cur / free) * 100) / 100 : null) };
+                       conf: f.confidence, closed: !!f.roadClosure, frc: f.frc,
+                       ratio: (free ? Math.round((cur / free) * 100) / 100 : null),
+                       coords: coords };
             }
           } catch (e) { item = { err: String(e).slice(0, 60) }; }
           if (!item.err) {
