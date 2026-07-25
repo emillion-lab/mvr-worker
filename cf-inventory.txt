@@ -1,4 +1,4 @@
-== CF inventory Mon Jul 13 19:39:19 UTC 2026 ==
+== CF inventory Sat Jul 25 22:34:15 UTC 2026 ==
 ### abrp bindings:
 []
 ### abrp cron:
@@ -12,7 +12,7 @@
 ### gh-admin cron:
 []
 ### mvr-proxy bindings:
-[{"type": "kv_namespace", "name": "GPS_STORE", "ns": "2900a1d9de0f49deac2359e558ba5783"}]
+[{"type": "secret_text", "name": "AERODATABOX \u041a\u0415\u0423", "ns": ""}, {"type": "kv_namespace", "name": "GPS_STORE", "ns": "2900a1d9de0f49deac2359e558ba5783"}, {"type": "secret_text", "name": "TOMTOM_KEY", "ns": ""}]
 ### mvr-proxy cron:
 []
 ### starter bindings:
