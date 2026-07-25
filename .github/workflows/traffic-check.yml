@@ -26,28 +26,28 @@ jobs:
           echo "--- разчитане на четирите отсечки (свежи) ---" >> $R
           curl -s "$B?pts=42.6906,23.3374;42.6752,23.3587;42.6745,23.3028;42.7049,23.3239&fresh=1" \
           | python3 -c "
-import json,sys
-names = ['Орлов мост','Цариградско','бул. България','Сливница']
-try:
-    d = json.load(sys.stdin)
-except Exception as e:
-    print('НЕ Е JSON:', e); raise SystemExit
-if d.get('error'):
-    print('ГРЕШКА:', d['error']); raise SystemExit
-data = d.get('data') or []
-for i, x in enumerate(data):
-    nm = names[i] if i < len(names) else str(i)
-    if not x:
-        print('%-16s няма данни' % nm); continue
-    if x.get('err'):
-        print('%-16s TomTom върна %s' % (nm, x['err'])); continue
-    c = x.get('coords') or []
-    print('%-16s %s/%s км/ч · ratio %s · ТОЧКИ: %d %s' % (
-        nm, x.get('cur'), x.get('free'), x.get('ratio'), len(c),
-        ('<-- ЛИПСВА ГЕОМЕТРИЯ' if not c else '')))
-    if c:
-        print('%-16s   първа точка %s, последна %s' % ('', c[0], c[-1]))
-" >> $R
+          import json,sys
+          names = ['Орлов мост','Цариградско','бул. България','Сливница']
+          try:
+              d = json.load(sys.stdin)
+          except Exception as e:
+              print('НЕ Е JSON:', e); raise SystemExit
+          if d.get('error'):
+              print('ГРЕШКА:', d['error']); raise SystemExit
+          data = d.get('data') or []
+          for i, x in enumerate(data):
+              nm = names[i] if i < len(names) else str(i)
+              if not x:
+                  print('%-16s няма данни' % nm); continue
+              if x.get('err'):
+                  print('%-16s TomTom върна %s' % (nm, x['err'])); continue
+              c = x.get('coords') or []
+              print('%-16s %s/%s км/ч · ratio %s · ТОЧКИ: %d %s' % (
+                  nm, x.get('cur'), x.get('free'), x.get('ratio'), len(c),
+                  ('<-- ЛИПСВА ГЕОМЕТРИЯ' if not c else '')))
+              if c:
+                  print('%-16s   първа точка %s, последна %s' % ('', c[0], c[-1]))
+          " >> $R
           echo "" >> $R
           echo "--- има ли 'coords' в качения worker ---" >> $R
           grep -c "coords" src/worker.js >> $R || echo "0" >> $R

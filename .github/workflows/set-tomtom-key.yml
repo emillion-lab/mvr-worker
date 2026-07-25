@@ -35,9 +35,9 @@ jobs:
             -H "Authorization: Bearer $CF_TOKEN" \
             -H "Content-Type: application/json" \
             --data "$(python3 -c "
-import json,os
-print(json.dumps({'name':'TOMTOM_KEY','text':os.environ['TT'],'type':'secret_text'}))
-")" \
+          import json,os
+          print(json.dumps({'name':'TOMTOM_KEY','text':os.environ['TT'],'type':'secret_text'}))
+          ")" \
             | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'success':d.get('success'),'errors':d.get('errors')}))" >> $R
           echo "" >> $R
           echo "--- тест на /traffic (Цариградско) ---" >> $R
