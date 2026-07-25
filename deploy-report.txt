@@ -1,10 +1,47 @@
-== Deploy report Fri Jul 24 07:37:28 UTC 2026 ==
+== Deploy report Sat Jul 25 22:30:23 UTC 2026 ==
+--- coords в src/worker.js ---
+5
 --- upload script ---
-{"success": true, "errors": []}
+--- суров отговор от Cloudflare ---
+{
+  "result": {
+    "created_on": "2026-06-28T05:51:07.422678Z",
+    "modified_on": "2026-07-25T22:30:24.115415Z",
+    "id": "mvr-proxy",
+    "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
+    "entry_point": "worker.js",
+    "tags": null,
+    "deployment_id": "7508e8029b0247b580c527f003ee9033",
+    "tail_consumers": null,
+    "logpush": false,
+    "has_assets": false,
+    "has_modules": true,
+    "etag": "a66732e08ff439a3db9abadfef3524ae572c75e752ae2a06f4c9a5aff5337b7c",
+    "handlers": [
+      "fetch"
+    ],
+    "last_deployed_from": "api",
+    "compatibility_date": "2024-01-01",
+    "usage_model": "standard",
+    "startup_time_ms": 0
+  },
+  "success": true,
+  "errors": [],
+  "messages": []
+}
+
 
 --- live /health ---
 {"service":"fish.taxi Worker","status":"ok","version":"2.8.1"}
---- live /traffic (Цариградско) ---
-{"updated":"2026-07-24T07:37:35.512Z","data":[{"cur":79,"free":79,"curT":54,"freeT":54,"conf":1,"closed":false,"ratio":1}]}
---- live /scrape eventim (first 200b) ---
+--- /traffic СВЕЖО (без кеш) ---
+скорост: 79/79 км/ч · ratio 1
+ТОЧКИ ГЕОМЕТРИЯ: 22
+първа: [42.68174, 23.34986] · последна: [42.67419, 23.36045]
 
+--- live /scrape eventim (first 120b) ---
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <title>Начало - Ndk.bg</title>
+    <meta charset="UTF-8">
+    <meta na
