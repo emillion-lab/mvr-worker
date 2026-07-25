@@ -47,7 +47,10 @@ jobs:
             -H "Authorization: Bearer $CF_TOKEN" \
             -F 'metadata={"main_module":"worker.js","keep_bindings":["secret_text","plain_text"],"bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"}],"compatibility_date":"2024-01-01"};type=application/json' \
             -F "worker.js=@/tmp/build/worker.js;type=application/javascript+module" \
-            | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'success':d.get('success'),'errors':d.get('errors')}))" >> $R
+            -o /tmp/cf.json || true
+          echo "--- суров отговор от Cloudflare ---" >> $R
+          head -c 900 /tmp/cf.json >> $R || true
+          echo "" >> $R
           echo "" >> $R
           echo "--- live /health ---" >> $R
           sleep 6
