@@ -679,13 +679,33 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
         if (!API_KEY) {
           return new Response(JSON.stringify({ error: 'AERODATABOX_KEY secret is not set on mvr-proxy' }), { status: 500, headers: CORS });
         }
-        const u = `https://prod.api.market/api/v1/aedbx/aerodatabox/flights/airports/iata/${iata}?offsetMinutes=-90&durationMinutes=360&direction=Arrival&withCancelled=true&withCodeshared=false&withLocation=false`;
-        const resp = await fetch(u, { headers: { 'accept': 'application/json', 'x-magicapi-key': API_KEY } });
-        if (!resp.ok) {
-          const txt = await resp.text();
-          return new Response(JSON.stringify({ error: 'AeroDataBox HTTP ' + resp.status, detail: txt.slice(0, 300) }), { status: 502, headers: CORS });
+        // ЦЯЛО ДЕНОНОЩИЕ: AeroDataBox дава максимум 12ч на заявка → две заявки
+        const WINDOWS = [ { off: -180, dur: 720 }, { off: 540, dur: 720 } ];
+        const base = `https://prod.api.market/api/v1/aedbx/aerodatabox/flights/airports/iata/${iata}`;
+        const tail = `&direction=Arrival&withCancelled=true&withCodeshared=false&withLocation=false`;
+        const parts = await Promise.all(WINDOWS.map(w =>
+          fetch(`${base}?offsetMinutes=${w.off}&durationMinutes=${w.dur}${tail}`,
+                { headers: { 'accept': 'application/json', 'x-magicapi-key': API_KEY } })
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null)
+        ));
+        if (!parts.some(Boolean)) {
+          return new Response(JSON.stringify({ error: 'AeroDataBox: и двата прозореца се провалиха' }), { status: 502, headers: CORS });
         }
-        const data = await resp.json();
+        // сливане + премахване на дублирани (един полет може да е в двата прозореца)
+        const seen = new Set(), merged = [];
+        parts.filter(Boolean).forEach(p => (p.arrivals || []).forEach(f => {
+          const mv = f.movement || {};
+          const key = (f.number || '') + '|' + ((mv.scheduledTime && mv.scheduledTime.local) || '');
+          if (seen.has(key)) return;
+          seen.add(key); merged.push(f);
+        }));
+        merged.sort((a, b) => {
+          const ta = ((a.movement || {}).scheduledTime || {}).local || '';
+          const tb = ((b.movement || {}).scheduledTime || {}).local || '';
+          return ta < tb ? -1 : ta > tb ? 1 : 0;
+        });
+        const data = { arrivals: merged };
         // debug=1 → връща суровия първи запис, за да видим къде е терминалът
         if (debug) {
           const first = (data.arrivals || [])[0] || {};
