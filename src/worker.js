@@ -85,7 +85,7 @@ export default {
           return new Response(JSON.stringify({ error: 'missing ?pts=lat,lng;lat,lng' }),
             { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
-        const list = pts.split(';').slice(0, 12);
+        const list = pts.split(';').slice(0, 20);
         const out = [];
         for (const p of list) {
           const parts = p.split(',');
@@ -96,7 +96,29 @@ export default {
           if (cached && url.searchParams.get('fresh') !== '1') {
             try { out.push(JSON.parse(cached)); continue; } catch (e) {}
           }
-          const tu = 'https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json'
+          // нощем (23:00–06:00 софийско) кешираме много по-дълго
+          // TT_SCHEDULE — кешът следва натоварването на деня
+          const sofiaH = (new Date().getUTCHours() + 3) % 24;
+          let TT_TTL;
+          if (sofiaH >= 23 || sofiaH < 6) TT_TTL = 3600;                    // нощ: 60 мин
+          else if (sofiaH >= 21) TT_TTL = 1800;                             // късна вечер: 30 мин
+          else if ((sofiaH >= 8 && sofiaH < 10) ||
+                   (sofiaH >= 17 && sofiaH < 19)) TT_TTL = 300;             // пик: 5 мин
+          else TT_TTL = 600;                                                // ден: 10 мин
+          const TT_NIGHT = (TT_TTL >= 1800);
+          // дневен предпазител за безплатната квота
+          const TT_DAILY_CAP = 2400;
+          const dayKey = 'tt:count:' + new Date().toISOString().slice(0, 10);
+          let used = 0;
+          try { used = parseInt((await env.GPS_STORE.get(dayKey)) || '0', 10) || 0; } catch (e) {}
+          if (used >= TT_DAILY_CAP) {
+            let stale = null;
+            try { stale = await env.GPS_STORE.get('tt:last:' + ck); } catch (e) {}
+            if (stale) { try { out.push(JSON.parse(stale)); continue; } catch (e) {} }
+            out.push({ err: 'quota', used: used });
+            continue;
+          }
+          const tu = 'https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/8/json'
                    + '?key=' + TT + '&point=' + la + ',' + ln + '&unit=KMPH';
           let item;
           try {
@@ -131,7 +153,10 @@ export default {
             }
           } catch (e) { item = { err: String(e).slice(0, 60) }; }
           if (!item.err) {
-            try { await env.GPS_STORE.put(ck, JSON.stringify(item), { expirationTtl: 180 }); } catch (e) {}
+            try { await env.GPS_STORE.put(ck, JSON.stringify(item), { expirationTtl: TT_TTL }); } catch (e) {}
+            // резервен запис за 24ч — ползва се ако свърши квотата
+            try { await env.GPS_STORE.put('tt:last:' + ck, JSON.stringify(item), { expirationTtl: 86400 }); } catch (e) {}
+            try { await env.GPS_STORE.put(dayKey, String(used + 1), { expirationTtl: 172800 }); } catch (e) {}
           }
           out.push(item);
         }
@@ -164,7 +189,7 @@ export default {
             if (prev.online === data.online && !moved && dt < 240000) {
               return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: CORS });
             }
-            if (prev.online === data.online && moved && dt < 40000) {
+            if (prev.online === data.online && moved && dt < 25000) {
               return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: CORS });
             }
           }
@@ -522,7 +547,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
                      moon_age: Math.round(moonAge * 10) / 10, dow, hour, rush: hEff > 1.0 },
           kat_url: 'https://emillion-lab.github.io/KAT/', updated: Date.now()
         });
-        try { await env.GPS_STORE.put('risk:current', result, { expirationTtl: 1800 }); } catch (e) {}
+        try { await env.GPS_STORE.put('risk:current', result, { expirationTtl: 2400 }); } catch (e) {}
         return new Response(result, { headers: { ...CORS, 'Content-Type': 'application/json' } });
       } catch (e) {
         return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: CORS });
@@ -661,112 +686,8 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
       return new Response(body, { status: upstream.status, headers: { ...CORS, 'Content-Type': 'text/html; charset=utf-8' } });
     }
 
-    // ── Летищни пристигания (AeroDataBox през API.market, кеш 15 мин) ──
-    if (path.startsWith('/flights/') && request.method === 'GET') {
-      try {
-        const iata = (path.split('/')[2] || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
-        if (iata.length !== 3) return new Response(JSON.stringify({ error: 'bad IATA code' }), { status: 400, headers: CORS });
-        const debug = url.searchParams.get('debug') === '1';
-        const ck = `flights:${iata}`;
-        if (!debug) {
-          const cached = await env.GPS_STORE.get(ck);
-          if (cached) return new Response(cached, { headers: CORS });
-        }
-        const API_KEY = env.AERODATABOX_KEY || env['AERODATABOX КЕУ'] || env['AERODATABOX KEY'];
-        if (!API_KEY) {
-          return new Response(JSON.stringify({ error: 'AERODATABOX_KEY secret is not set on mvr-proxy' }), { status: 500, headers: CORS });
-        }
-        // ЦЯЛО ДЕНОНОЩИЕ: AeroDataBox дава максимум 12ч на заявка → две заявки
-        const WINDOWS = [ { off: -180, dur: 720 }, { off: 540, dur: 720 } ];
-        const base = `https://prod.api.market/api/v1/aedbx/aerodatabox/flights/airports/iata/${iata}`;
-        const tail = `&direction=Arrival&withCancelled=true&withCodeshared=false&withLocation=false`;
-        const parts = await Promise.all(WINDOWS.map(w =>
-          fetch(`${base}?offsetMinutes=${w.off}&durationMinutes=${w.dur}${tail}`,
-                { headers: { 'accept': 'application/json', 'x-magicapi-key': API_KEY } })
-            .then(r => r.ok ? r.json() : null)
-            .catch(() => null)
-        ));
-        if (!parts.some(Boolean)) {
-          return new Response(JSON.stringify({ error: 'AeroDataBox: и двата прозореца се провалиха' }), { status: 502, headers: CORS });
-        }
-        // сливане + премахване на дублирани (един полет може да е в двата прозореца)
-        const seen = new Set(), merged = [];
-        parts.filter(Boolean).forEach(p => (p.arrivals || []).forEach(f => {
-          const mv = f.movement || {};
-          const key = (f.number || '') + '|' + ((mv.scheduledTime && mv.scheduledTime.local) || '');
-          if (seen.has(key)) return;
-          seen.add(key); merged.push(f);
-        }));
-        merged.sort((a, b) => {
-          const ta = ((a.movement || {}).scheduledTime || {}).local || '';
-          const tb = ((b.movement || {}).scheduledTime || {}).local || '';
-          return ta < tb ? -1 : ta > tb ? 1 : 0;
-        });
-        const data = { arrivals: merged };
-        // debug=1 → връща суровия първи запис, за да видим къде е терминалът
-        if (debug) {
-          const first = (data.arrivals || [])[0] || {};
-          return new Response(JSON.stringify({ ok: true, raw_first: first, keys: Object.keys(first), movement_keys: first.movement ? Object.keys(first.movement) : null }, null, 2), { headers: CORS });
-        }
-        const arrivals = (data.arrivals || []).map(f => {
-          const mv = f.movement || {};
-          return {
-            number: f.number,
-            airline: f.airline && f.airline.name,
-            from: mv.airport && (mv.airport.name || mv.airport.iata),
-            scheduled: mv.scheduledTime && mv.scheduledTime.local,
-            revised: mv.revisedTime && mv.revisedTime.local,
-            terminal: mv.terminal || null,
-            gate: mv.gate || null,
-            baggage: mv.baggageBelt || null,
-            status: f.status,
-          };
-        });
-        const out = JSON.stringify({ ok: true, airport: iata, count: arrivals.length, updated: Date.now(), arrivals });
-        try { await env.GPS_STORE.put(ck, out, { expirationTtl: 900 }); } catch (e) {}
-        return new Response(out, { headers: CORS });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
-      }
-    }
-
-    // ── Generic scrape proxy (за bot-защитени сайтове; кеш 30 мин) ──
-    if (path === '/scrape' && request.method === 'GET') {
-      try {
-        const target = url.searchParams.get('url');
-        if (!target) return new Response(JSON.stringify({ error: 'missing ?url=' }), { status: 400, headers: CORS });
-        // allowlist — само разрешени домейни, за да не е отворено прокси
-        const ALLOW = ['eventim.bg', 'www.eventim.bg', 'public-api.eventim.com', 'ndk.bg', 'www.ndk.bg', 'bilet.bg', 'www.bilet.bg', 'arenaarmeecsofia.net', 'www.arenaarmeecsofia.net', 'theatre.art.bg', 'www.theatre.art.bg', 'gong.bg', 'www.gong.bg', 'visitsofia.bg', 'www.visitsofia.bg', 'sofia.bg', 'www.sofia.bg', 'live.bdz.bg', 'razpisanie.bdz.bg', 'bdz.bg', 'www.bdz.bg', 'centralnaavtogara.bg', 'www.centralnaavtogara.bg'];
-        let host;
-        try { host = new URL(target).hostname; } catch (e) { return new Response(JSON.stringify({ error: 'bad url' }), { status: 400, headers: CORS }); }
-        if (!ALLOW.includes(host)) return new Response(JSON.stringify({ error: 'host not allowed', host }), { status: 403, headers: CORS });
-        const ck = 'scrape:' + target;
-        const cached = await env.GPS_STORE.get(ck);
-        if (cached && url.searchParams.get('fresh') !== '1') return new Response(cached, { headers: { ...CORS, 'X-Cache': 'HIT' } });
-        const isApi = host === 'public-api.eventim.com' || host.startsWith('api.') || target.includes('/api/') || target.includes('graphql');
-        // live таблата не се кешират дълго — данните са в реално време
-        const liveHost = host === 'live.bdz.bg';
-        const ttl = liveHost ? 120 : 1800;
-        const resp = await fetch(target, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
-            'Accept': isApi ? 'application/json' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'bg-BG,bg;q=0.9,en;q=0.8',
-          },
-          cf: { cacheTtl: ttl, cacheEverything: true },
-        });
-        const body = await resp.text();
-        if (resp.ok && body.length > 500) {
-          try { await env.GPS_STORE.put(ck, body, { expirationTtl: ttl }); } catch (e) {}
-        }
-        return new Response(body, { status: resp.status, headers: { ...CORS, 'Content-Type': (isApi ? 'application/json' : 'text/html') + '; charset=utf-8', 'X-Cache': 'MISS' } });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 502, headers: CORS });
-      }
-    }
-
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.9' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.8.1' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
