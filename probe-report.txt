@@ -1,3 +1,3 @@
-== Wed Jul 15 08:48:17 UTC 2026 GET ==
-{"error":{"code":"usage_limit_reached","message":"Your monthly usage limit has been reached. Please upgrade your Subscription Plan."}}
-HTTP 429
+== Sat Jul 25 22:31:09 UTC 2026 GET ==
+{"service":"fish.taxi Worker","status":"ok","version":"2.8.1"}
+HTTP 200
