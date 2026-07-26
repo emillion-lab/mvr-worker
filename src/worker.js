@@ -523,14 +523,16 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
           dp = Math.abs((hrs[nowIdx] || 0) - (hrs[nowIdx - 24] || 0));
         } catch (e) {}
         // Лунна възраст (локална математика)
-        const moonAge = ((Date.now() / 86400000 - 10957.5 + 4.867) % 29.53 + 29.53) % 29.53;
+        // точна възраст спрямо референтно новолуние (6 ян 2000, 18:14 UTC)
+        const MOON_REF = Date.UTC(2000, 0, 6, 18, 14), MOON_SYN = 29.530588853 * 86400000;
+        const moonAge = ((((Date.now() - MOON_REF) % MOON_SYN) + MOON_SYN) % MOON_SYN) / 86400000;
         const now = new Date(Date.now() + 3 * 3600000); // София ≈ UTC+3 лято
         const dow = now.getUTCDay();
         const hour = now.getUTCHours();
         // KAT формули
         const kpEff = kp >= 7.5 ? 0.95 : kp >= 6 ? 1.08 : kp >= 5 ? 1.14 : kp >= 3 ? 1.05 : 1.0;
         const pEff = dp >= 10 ? 1.14 : dp >= 5 ? 1.08 : dp >= 2 ? 1.03 : 1.0;
-        const mNorm = Math.abs(Math.sin((moonAge / 29.53) * Math.PI));
+        const mNorm = Math.abs(Math.sin((moonAge / 29.530588853) * Math.PI));
         const mEff = mNorm > 0.85 ? 1.06 : mNorm > 0.6 ? 1.03 : 1.0;
         const dEff = [0.82, 0.88, 0.93, 0.98, 1.28, 1.22, 0.78][dow] || 1.0;
         const inter = (kp >= 5 && dp >= 10) ? 1.08 : 1.0;
