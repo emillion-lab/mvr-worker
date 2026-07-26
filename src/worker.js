@@ -694,9 +694,27 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
         const debug = url.searchParams.get('debug') === '1';
         const fresh = url.searchParams.get('fresh') === '1';
         const ck = `flights:${iata}`;
+        const lastKey = `flights:last:${iata}`;
+        const DAY_BUDGET = 180;          // единици/ден (6000/мес ≈ 200/ден, с резерв)
+        const dayKey = 'adb:used:' + new Date(Date.now() + 3*3600000).toISOString().slice(0,10);
+
         if (!debug && !fresh) {
           const cached = await env.GPS_STORE.get(ck);
           if (cached) return new Response(cached, { headers: CORS });
+        }
+
+        // Бюджетна спирачка: при изчерпан дневен лимит сервираме последното
+        // известно състояние вместо да харчим единици.
+        let usedToday = 0;
+        try { usedToday = parseInt(await env.GPS_STORE.get(dayKey) || '0', 10); } catch (e) {}
+        if (!fresh && usedToday >= DAY_BUDGET) {
+          const last = await env.GPS_STORE.get(lastKey);
+          if (last) {
+            const obj = JSON.parse(last);
+            obj.budgetHold = true;
+            obj.adbToday = usedToday;
+            return new Response(JSON.stringify(obj), { headers: CORS });
+          }
         }
         const API_KEY = env.AERODATABOX_KEY || env['AERODATABOX КЕУ'] || env['AERODATABOX KEY'];
         if (!API_KEY) {
@@ -746,16 +764,35 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
             status: f.status,
           };
         });
-        // брояч на реалните обръщения към AeroDataBox (2 заявки на обновяване)
-        let usedToday = 0;
+        // Колко скоро има кацане → толкова често има смисъл да питаме
+        const nowMs = Date.now();
+        let nextIn = 1e9;
+        arrivals.forEach(a => {
+          const s = a.revised || a.scheduled;
+          if (!s) return;
+          const ts = new Date(String(s).replace(' ', 'T')).getTime();
+          const d = ts - nowMs;
+          if (d > -20*60000 && d < nextIn) nextIn = d;
+        });
+        const mins = nextIn / 60000;
+        // близко кацане → пресни закъснения; мъртви часове → пестим
+        const TTL = mins <= 45  ? 300     //  5 мин — полет каца скоро
+                  : mins <= 120 ? 900     // 15 мин
+                  : mins <= 240 ? 1800    // 30 мин
+                  :               3600;   // 60 мин — нищо не идва
+
+        let usedNow = 0;
         try {
-          const dk = 'adb:used:' + new Date(Date.now() + 3*3600000).toISOString().slice(0,10);
-          usedToday = parseInt(await env.GPS_STORE.get(dk) || '0', 10) + 2;
-          await env.GPS_STORE.put(dk, String(usedToday), { expirationTtl: 40 * 86400 });
+          usedNow = parseInt(await env.GPS_STORE.get(dayKey) || '0', 10) + 2;
+          await env.GPS_STORE.put(dayKey, String(usedNow), { expirationTtl: 40 * 86400 });
         } catch (e) {}
+
         const out = JSON.stringify({ ok: true, airport: iata, count: arrivals.length,
-                                     updated: Date.now(), adbToday: usedToday, arrivals });
-        try { await env.GPS_STORE.put(ck, out, { expirationTtl: 360 }); } catch (e) {}
+                                     updated: nowMs, adbToday: usedNow, ttl: TTL,
+                                     nextInMin: Math.round(mins), arrivals });
+        try { await env.GPS_STORE.put(ck, out, { expirationTtl: TTL }); } catch (e) {}
+        // дълготрайно резервно копие за бюджетната спирачка
+        try { await env.GPS_STORE.put(lastKey, out, { expirationTtl: 86400 }); } catch (e) {}
         return new Response(out, { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
