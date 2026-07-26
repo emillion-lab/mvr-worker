@@ -1,4 +1,4 @@
-== Deploy report Sat Jul 25 22:39:17 UTC 2026 ==
+== Deploy report Sun Jul 26 22:29:14 UTC 2026 ==
 --- coords в src/worker.js ---
 5
 --- upload script ---
@@ -6,17 +6,17 @@
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-07-25T22:39:18.378402Z",
+    "modified_on": "2026-07-26T22:29:14.391062Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "dd601bc2603d4415a0cc3e28f552af7c",
+    "deployment_id": "1805a062971f4f1caf6c78ff161d7ed9",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
     "has_modules": true,
-    "etag": "aaab6e80c9d1939edbfdee99bf5293e86de54e02c6a1bd581a4c24420cec5021",
+    "etag": "28c1cc8d79d9ee0e945f769ea2997ef296f64477e6a4a51945fa930510ab9cd2",
     "handlers": [
       "fetch"
     ],
