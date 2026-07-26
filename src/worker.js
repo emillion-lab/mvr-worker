@@ -746,8 +746,16 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
             status: f.status,
           };
         });
-        const out = JSON.stringify({ ok: true, airport: iata, count: arrivals.length, updated: Date.now(), arrivals });
-        try { await env.GPS_STORE.put(ck, out, { expirationTtl: 900 }); } catch (e) {}
+        // брояч на реалните обръщения към AeroDataBox (2 заявки на обновяване)
+        let usedToday = 0;
+        try {
+          const dk = 'adb:used:' + new Date(Date.now() + 3*3600000).toISOString().slice(0,10);
+          usedToday = parseInt(await env.GPS_STORE.get(dk) || '0', 10) + 2;
+          await env.GPS_STORE.put(dk, String(usedToday), { expirationTtl: 40 * 86400 });
+        } catch (e) {}
+        const out = JSON.stringify({ ok: true, airport: iata, count: arrivals.length,
+                                     updated: Date.now(), adbToday: usedToday, arrivals });
+        try { await env.GPS_STORE.put(ck, out, { expirationTtl: 360 }); } catch (e) {}
         return new Response(out, { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
