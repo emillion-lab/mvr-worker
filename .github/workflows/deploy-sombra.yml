@@ -81,6 +81,10 @@ jobs:
             -H "Content-Type: application/json" \
             --data '{"text":"smoke test claim for deployment"}' >> $R
           echo "" >> $R
+          echo "--- bindings on live worker ---" >> $R
+          curl -s "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/sombra/settings" \
+            -H "Authorization: Bearer $CF_TOKEN" | head -c 400 >> $R
+          echo "" >> $R
 
       - name: Commit report
         run: |
