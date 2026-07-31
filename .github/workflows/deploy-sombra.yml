@@ -31,7 +31,7 @@ jobs:
 
       - name: Refuse to deploy a stale copy
         run: |
-          for marker in "function carve" "function textOf" "function shapeOf"; do
+          for marker in "function carve" "function textOf" "pack=?" "reviewed"; do
             if [ "$(grep -c "$marker" /tmp/index.js)" -lt 1 ]; then
               echo "source is missing: $marker — aborting"
               exit 1
@@ -48,7 +48,6 @@ jobs:
           D1="5d2b95a0-a8c5-4419-9e23-6a677c89981c"
           echo "== SOMBRA deploy $(date -u) ==" > $R
           echo "source bytes: $(wc -c < /tmp/index.js)" >> $R
-          echo "markers: carve=$(grep -c 'function carve' /tmp/index.js) textOf=$(grep -c 'function textOf' /tmp/index.js)" >> $R
 
           cat > /tmp/meta.json <<EOF
           {
