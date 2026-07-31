@@ -1,0 +1,8 @@
+== SOMBRA deploy Fri Jul 31 05:04:25 UTC 2026 ==
+source bytes: 13176
+carve present: 0
+--- upload ---
+success: True
+
+--- GET /api/calibration ---
+{"n":0,"brier":null,"bias":null,"note":"No resolved claims yet."}
