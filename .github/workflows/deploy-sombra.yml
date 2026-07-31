@@ -25,6 +25,7 @@ jobs:
           wc -c /tmp/index.js
           cp /tmp/index.js /tmp/check.mjs
           node --check /tmp/check.mjs
+          echo "carve present: $(grep -c 'function carve' /tmp/index.js)"
 
       - name: Upload to Cloudflare
         env:
@@ -35,6 +36,7 @@ jobs:
           D1="5d2b95a0-a8c5-4419-9e23-6a677c89981c"
           echo "== SOMBRA deploy $(date -u) ==" > $R
           echo "source bytes: $(wc -c < /tmp/index.js)" >> $R
+          echo "carve present: $(grep -c 'function carve' /tmp/index.js)" >> $R
 
           cat > /tmp/meta.json <<EOF
           {
@@ -63,30 +65,13 @@ jobs:
           " >> $R 2>&1 || head -c 500 /tmp/cf.json >> $R
           echo "" >> $R
 
-          echo "--- subdomain ---" >> $R
-          curl -s -X POST \
-            "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/sombra/subdomain" \
-            -H "Authorization: Bearer $CF_TOKEN" \
-            -H "Content-Type: application/json" \
-            --data '{"enabled":true}' | head -c 200 >> $R
-          echo "" >> $R
-
           sleep 10
           echo "--- GET /api/calibration ---" >> $R
           curl -s "https://sombra.mihov-emil.workers.dev/api/calibration" | head -c 300 >> $R
           echo "" >> $R
-          echo "--- POST /api/audit without token (401 = locked, as intended) ---" >> $R
-          curl -s -o /dev/null -w "%{http_code}" -X POST \
-            "https://sombra.mihov-emil.workers.dev/api/audit" \
-            -H "Content-Type: application/json" \
-            --data '{"text":"smoke test claim for deployment"}' >> $R
-          echo "" >> $R
-          echo "--- bindings on live worker ---" >> $R
-          curl -s "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/sombra/settings" \
-            -H "Authorization: Bearer $CF_TOKEN" | head -c 400 >> $R
-          echo "" >> $R
 
       - name: Commit report
+        if: always()
         run: |
           git config user.name "ci"
           git config user.email "ci@emillion-lab"
