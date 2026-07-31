@@ -1,6 +1,6 @@
-== SOMBRA deploy Fri Jul 31 05:04:25 UTC 2026 ==
-source bytes: 13176
-carve present: 0
+== SOMBRA deploy Fri Jul 31 05:07:00 UTC 2026 ==
+source bytes: 14218
+carve present: 1
 --- upload ---
 success: True
 
