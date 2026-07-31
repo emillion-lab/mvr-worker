@@ -2,7 +2,9 @@ name: Deploy SOMBRA
 
 # Живее тук, защото CLOUDFLARE_API_TOKEN е тайна на това репо.
 # Не пипа mvr-proxy — качва само Worker-а "sombra" с код от репото SOMBRA.
-# Може да се премести в SOMBRA, щом там се добави собствен CLOUDFLARE_API_TOKEN.
+#
+# Източникът се чете през GitHub API, а не през raw.githubusercontent:
+# CDN-ът кешира около пет минути и веднъж вече качи предишна версия.
 
 on:
   push:
@@ -20,12 +22,20 @@ jobs:
 
       - name: Fetch SOMBRA worker source
         run: |
-          curl -sL "https://raw.githubusercontent.com/emillion-lab/SOMBRA/main/src/index.js?cb=$(date +%s)" \
+          curl -sL -H "Accept: application/vnd.github.raw" \
+            "https://api.github.com/repos/emillion-lab/SOMBRA/contents/src/index.js" \
             -o /tmp/index.js
-          wc -c /tmp/index.js
+          echo "bytes: $(wc -c < /tmp/index.js)"
           cp /tmp/index.js /tmp/check.mjs
           node --check /tmp/check.mjs
-          echo "carve present: $(grep -c 'function carve' /tmp/index.js)"
+
+      - name: Refuse to deploy a stale copy
+        run: |
+          if [ "$(grep -c 'function carve' /tmp/index.js)" -lt 1 ]; then
+            echo "source is missing the JSON hardening; aborting"
+            exit 1
+          fi
+          echo "source looks current"
 
       - name: Upload to Cloudflare
         env:
