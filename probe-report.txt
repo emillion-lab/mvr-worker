@@ -1,3 +1,3 @@
-== Fri Jul 31 20:04:53 UTC 2026 GET ==
-{"service":"fish.taxi Worker","status":"ok","version":"2.8.1"}
-HTTP 200
+== Sat Aug  1 01:31:29 UTC 2026 GET ==
+{"error":"Not found"}
+HTTP 404
