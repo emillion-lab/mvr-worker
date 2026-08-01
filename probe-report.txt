@@ -1,3 +1,4 @@
-== Sat Aug  1 01:31:29 UTC 2026 GET ==
-{"error":"Not found"}
-HTTP 404
+== Sat Aug  1 01:32:47 UTC 2026 GET ==
+error code: 520
+
+HTTP 520
