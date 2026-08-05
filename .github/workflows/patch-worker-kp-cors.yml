@@ -1,0 +1,46 @@
+name: patch-worker-kp-cors
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/patch-worker-kp-cors.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extend /scrape allowlist with kp.gfz.de (GFZ Kp index, no CORS)
+        run: |
+          python3 - <<'PYEOF'
+          src = open('src/worker.js', encoding='utf-8').read()
+          old = "const ALLOW = ['eventim.bg', 'www.eventim.bg', 'public-api.eventim.com', 'ndk.bg', 'www.ndk.bg', 'bilet.bg', 'www.bilet.bg', 'arenaarmeecsofia.net', 'www.arenaarmeecsofia.net', 'theatre.art.bg', 'www.theatre.art.bg', 'gong.bg', 'www.gong.bg', 'visitsofia.bg', 'www.visitsofia.bg', 'sofia.bg', 'www.sofia.bg', 'live.bdz.bg', 'razpisanie.bdz.bg', 'bdz.bg', 'www.bdz.bg', 'centralnaavtogara.bg', 'www.centralnaavtogara.bg'];"
+          new = "const ALLOW = ['eventim.bg', 'www.eventim.bg', 'public-api.eventim.com', 'ndk.bg', 'www.ndk.bg', 'bilet.bg', 'www.bilet.bg', 'arenaarmeecsofia.net', 'www.arenaarmeecsofia.net', 'theatre.art.bg', 'www.theatre.art.bg', 'gong.bg', 'www.gong.bg', 'visitsofia.bg', 'www.visitsofia.bg', 'sofia.bg', 'www.sofia.bg', 'live.bdz.bg', 'razpisanie.bdz.bg', 'bdz.bg', 'www.bdz.bg', 'centralnaavtogara.bg', 'www.centralnaavtogara.bg', 'kp.gfz.de'];"
+          n = src.count(old)
+          assert n >= 1, 'allowlist marker not found (x%d)' % n
+          src = src.replace(old, new)
+          open('src/worker.js', 'w', encoding='utf-8').write(src)
+          print('patched occurrences:', n)
+          PYEOF
+
+      - name: Deploy via Cloudflare API
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          cp src/worker.js /tmp/worker.js
+          ACC="74820d71c551391ce31d309c2fcb091c"
+          R="deploy-report.txt"; echo "== kp.gfz.de scrape allowlist deploy $(date -u) ==" > $R
+          curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy" \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            -F 'metadata={"main_module":"worker.js","keep_bindings":["secret_text","plain_text"],"bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"}],"compatibility_date":"2024-01-01"};type=application/json' \
+            -F "worker.js=@/tmp/worker.js;type=application/javascript+module" \
+            | python3 -c "import json,sys;d=json.load(sys.stdin);print(json.dumps({'success':d.get('success'),'errors':d.get('errors')}))" >> $R
+          echo "" >> $R
+          sleep 6
+          echo "--- test kp.gfz.de via proxy ---" >> $R
+          curl -s "https://mvr-proxy.mihov-emil.workers.dev/scrape?url=https%3A%2F%2Fkp.gfz.de%2Fapp%2Fjson%2F%3Fstart%3D2024-01-01T00%3A00%3A00Z%26end%3D2024-01-02T00%3A00%3A00Z%26index%3DKp%26status%3Ddef" -w "\nHTTP %{http_code}\n" >> $R
+          git config user.name dep; git config user.email dep@bak
+          git add -A; git commit -m "worker: kp.gfz.de scrape allowlist + deploy report" || true; git push
