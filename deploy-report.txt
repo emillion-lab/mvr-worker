@@ -1,4 +1,4 @@
-== Deploy report Fri Jul 31 08:34:20 UTC 2026 ==
+== Deploy report Wed Aug  5 19:56:23 UTC 2026 ==
 --- coords в src/worker.js ---
 5
 --- upload script ---
@@ -6,12 +6,12 @@
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-07-31T08:34:20.76582Z",
+    "modified_on": "2026-08-05T19:56:23.903352Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "2ab1a1b64ed5425b8476da80e37f55ee",
+    "deployment_id": "95509370861c41da89d5b58459cba557",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
@@ -34,7 +34,7 @@
 --- live /health ---
 {"service":"fish.taxi Worker","status":"ok","version":"2.8.1"}
 --- /traffic СВЕЖО (без кеш) ---
-скорост: 57/79 км/ч · ratio 0.72
+скорост: 79/79 км/ч · ratio 1
 ТОЧКИ ГЕОМЕТРИЯ: 22
 първа: [42.68174, 23.34986] · последна: [42.67419, 23.36045]
 
