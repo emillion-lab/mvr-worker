@@ -1,0 +1,1 @@
+{"ok":true,"coefficient":1.12,"score":6,"level":1,"label":"Обичайно","car_score":6,"harm_score":7,"harm_coefficient":1.2,"factors":{"rain":0,"snow":0,"cloud":8,"tmin":19.1,"tmax":31.8,"wind":12.6,"dow":1,"mon":8,"hour":14,"rush":false},"model":"KAT v3 · МВР 2015–2025","kat_url":"https://emillion-lab.github.io/KAT/","updated":1786361469019}
