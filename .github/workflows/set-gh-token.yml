@@ -1,0 +1,76 @@
+name: Set GH Token
+# Взима GitHub PAT от repo secret (маскиран в логовете) и го записва като
+# Worker secret в Cloudflare, за да може mvr-proxy да пуска GitHub Actions.
+# Токенът НИКОГА не влиза в repo-то.
+#
+# Преди да пуснеш:
+#   Settings -> Secrets and variables -> Actions -> New repository secret
+#     Name: GH_DISPATCH_TOKEN
+#     Value: fine-grained PAT с Actions: Read and write върху emillion-lab
+#   и (по избор, но силно препоръчително) втори secret:
+#     Name: DISPATCH_KEY
+#     Value: дълъг случаен низ — пази /dispatch endpoint-а от чужди заявки
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  set-secret:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload secrets to Worker
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GHT: ${{ secrets.GH_DISPATCH_TOKEN }}
+          DKEY: ${{ secrets.DISPATCH_KEY }}
+        run: |
+          R="ghtoken-report.txt"
+          echo "== Set GH token $(date -u) ==" > $R
+          if [ -z "$GHT" ]; then
+            echo "ГРЕШКА: GitHub secret GH_DISPATCH_TOKEN не е зададен." >> $R
+            echo "Settings -> Secrets and variables -> Actions -> New repository secret" >> $R
+            cat $R; exit 1
+          fi
+          ACC="74820d71c551391ce31d309c2fcb091c"
+          URL="https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy/secrets"
+
+          echo "--- upload GH_TOKEN ---" >> $R
+          curl -s -X PUT "$URL" \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$(python3 -c "
+          import json,os
+          print(json.dumps({'name':'GH_TOKEN','text':os.environ['GHT'],'type':'secret_text'}))
+          ")" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'success':d.get('success'),'errors':d.get('errors')}))" >> $R
+          echo "" >> $R
+
+          if [ -n "$DKEY" ]; then
+            echo "--- upload DISPATCH_KEY ---" >> $R
+            curl -s -X PUT "$URL" \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "$(python3 -c "
+          import json,os
+          print(json.dumps({'name':'DISPATCH_KEY','text':os.environ['DKEY'],'type':'secret_text'}))
+          ")" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'success':d.get('success'),'errors':d.get('errors')}))" >> $R
+          else
+            echo "--- DISPATCH_KEY не е зададен: endpoint-ът ще откаже всички заявки ---" >> $R
+          fi
+          echo "" >> $R
+
+          echo "--- тест: /dispatch без ключ (трябва 401) ---" >> $R
+          sleep 5
+          curl -s -o /dev/null -w "HTTP %{http_code}\n" \
+            "https://mvr-proxy.mihov-emil.workers.dev/dispatch" >> $R
+          echo "" >> $R
+          cat $R
+          git config user.name "ci"; git config user.email "ci@fish.taxi"
+          git add $R
+          git commit -m "gh token report [skip ci]" || true
+          git fetch origin main && git rebase origin/main || true
+          git push
