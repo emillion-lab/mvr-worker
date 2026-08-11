@@ -14,6 +14,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Apply pending source patches
+        run: |
+          # /dispatch endpoint — idempotent, сам се пропуска ако вече е вътре
+          python3 patch_dispatch.py
+          node --check src/worker.js && echo "syntax OK"
+          # ако скриптът е добавил нещо, върни го в repo-то
+          if ! git diff --quiet src/worker.js; then
+            git config user.name "ci"; git config user.email "ci@fish.taxi"
+            git add src/worker.js
+            git commit -m "worker: /dispatch endpoint [skip ci]"
+            git fetch origin main && git rebase origin/main || true
+            git push || echo "push failed, продължавам с деплоя"
+          fi
+
       - name: Build patched worker
         run: |
           python3 - <<'EOF'
@@ -31,6 +45,7 @@ jobs:
           open('/tmp/build/worker.js', 'w').write(src)
           print('built bytes:', len(src))
           print('има coords в билда:', 'coords:' in src)
+          print('има /dispatch в билда:', "path === '/dispatch'" in src)
           EOF
 
       - name: Deploy via Cloudflare API
@@ -56,6 +71,10 @@ jobs:
           sleep 6
           curl -s https://mvr-proxy.mihov-emil.workers.dev/health >> $R
           echo "" >> $R
+          echo "--- /dispatch без ключ (очаква се 401) ---" >> $R
+          curl -s -o /dev/null -w "HTTP %{http_code}" \
+            "https://mvr-proxy.mihov-emil.workers.dev/dispatch" >> $R
+          echo "" >> $R
           echo "--- /traffic СВЕЖО (без кеш) ---" >> $R
           curl -s "https://mvr-proxy.mihov-emil.workers.dev/traffic?pts=42.6752,23.3587&fresh=1" \
           | python3 -c "
@@ -77,4 +96,5 @@ jobs:
           git config user.name "ci"; git config user.email "ci@fish.taxi"
           git add deploy-report.txt
           git commit -m "deploy report [skip ci]" || true
+          git fetch origin main && git rebase origin/main || true
           git push
