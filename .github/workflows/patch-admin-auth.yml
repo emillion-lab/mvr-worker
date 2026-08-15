@@ -1,0 +1,47 @@
+name: Patch Admin Auth
+# Прилага patch_admin_auth.py върху src/worker.js и бута промяната.
+# Push към main вдига Deploy Worker автоматично.
+#
+# ВАЖНО: пусни това СЛЕД "Set Admin Token", иначе админът остава затворен,
+# докато секретът не бъде качен (KV admin:token продължава да важи дотогава).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply patch
+        run: python3 patch_admin_auth.py
+
+      - name: Syntax check
+        run: |
+          node --check src/worker.js
+          echo "SYNTAX OK"
+
+      - name: Verify the hardcoded password is gone
+        run: |
+          if grep -q "fishtaxi_admin_2026" src/worker.js; then
+            echo "ГРЕШКА: старата константа още е в кода"; exit 1
+          fi
+          grep -q "ADMIN_TOKEN" src/worker.js || { echo "ГРЕШКА: липсва ADMIN_TOKEN"; exit 1; }
+          echo "CLEAN"
+
+      - name: Commit
+        run: |
+          git config user.name  "ci"
+          git config user.email "ci@fish.taxi"
+          if git diff --quiet src/worker.js; then
+            echo "no change"
+          else
+            git add src/worker.js
+            git commit -m "security: admin auth via Worker secret ADMIN_TOKEN"
+            git fetch origin main && git rebase origin/main || true
+            git push
+          fi
