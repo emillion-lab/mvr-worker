@@ -8,9 +8,8 @@ const CORS = {
   'Content-Type': 'application/json; charset=utf-8',
 };
 
-const DRIVER_TOKENS = {
-  '1': 'fishtaxi_emil_2026_secret',
-};
+// DRIVER_TOKENS е премахната: константа в публично repo не е тайна.
+// Единственият източник е KV: token:{normPhone(driver_id)}.
 
 // ADMIN_PASSWORD е премахната: константа в публично repo не е тайна.
 // Админ достъпът се чете от Worker secret ADMIN_TOKEN (виж checkAdminPass).
@@ -57,9 +56,9 @@ async function checkAdminPass(env, pass) {
 
 async function checkToken(env, driver_id, token) {
   if (!driver_id || !token) return false;
-  if (DRIVER_TOKENS[driver_id] === token) return true;
   const stored = await env.GPS_STORE.get(`token:${normPhone(driver_id)}`);
-  return stored !== null && stored === token;
+  if (stored === null) return false;
+  return adminSafeEq(stored, token);
 }
 
 export default {
@@ -187,7 +186,7 @@ export default {
         if (!(await checkToken(env, driver_id, token))) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
-        const did = DRIVER_TOKENS[driver_id] ? driver_id : normPhone(driver_id);
+        const did = normPhone(driver_id);
         const data = { driver_id: did, lat, lng, online: online !== false, updated_at: Date.now() };
         // Дедуп: ако сме писали < 45 сек и позицията е почти същата — не хабим запис
         try {
@@ -245,7 +244,7 @@ export default {
         if (!(await checkToken(env, driver_id, token))) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
-        const did = DRIVER_TOKENS[driver_id] ? driver_id : normPhone(driver_id);
+        const did = normPhone(driver_id);
         const raw = await env.GPS_STORE.get(`driver:${did}`);
         const existing = raw ? JSON.parse(raw) : { driver_id: did, lat: 42.6977, lng: 23.3219 };
         existing.online = !!online;
