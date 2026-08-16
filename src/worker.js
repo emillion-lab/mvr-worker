@@ -54,6 +54,34 @@ async function checkAdminPass(env, pass) {
   return false;
 }
 
+/* ─── FT-PRIVACY-BASE ───
+   Офлайн шофьор не показва къде наистина е. Показва базата си.
+   Домашният адрес не бива да се извежда от публично API. */
+const BASE_FALLBACK = { lat: 42.6977, lng: 23.3219 };   // център на София
+
+async function getBase(env, did) {
+  try {
+    const raw = await env.GPS_STORE.get(`base:${did}`);
+    if (raw) {
+      const b = JSON.parse(raw);
+      if (typeof b.lat === 'number' && typeof b.lng === 'number') return b;
+    }
+  } catch (e) {}
+  return BASE_FALLBACK;
+}
+
+/* Връща копие на записа с подменени координати, ако е офлайн. */
+async function maskIfOffline(env, d) {
+  if (d.online) return d;
+  const base = await getBase(env, d.driver_id);
+  return Object.assign({}, d, {
+    lat: base.lat,
+    lng: base.lng,
+    approx: true,          // за интерфейса: това е база, не жива позиция
+    at_base: true
+  });
+}
+
 async function checkToken(env, driver_id, token) {
   if (!driver_id || !token) return false;
   const stored = await env.GPS_STORE.get(`token:${normPhone(driver_id)}`);
@@ -229,9 +257,39 @@ export default {
           if (!raw) continue;
           const d = JSON.parse(raw);
           d.online = d.online && (now - d.updated_at) < OFFLINE_AFTER_MS;
-          drivers.push(d);
+          /* дори да не е натиснат СТОП — щом е офлайн, точката се маскира */
+          drivers.push(await maskIfOffline(env, d));
         }
         return new Response(JSON.stringify({ ok: true, count: drivers.length, online: drivers.filter(d => d.online).length, drivers }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
+      }
+    }
+
+    /* Задаване на собствената база. Изисква драйвър токен. */
+    if (path === '/base' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { driver_id, token, lat, lng } = body;
+        if (!(await checkToken(env, driver_id, token))) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+        }
+        if (typeof lat !== 'number' || typeof lng !== 'number') {
+          return new Response(JSON.stringify({ error: 'lat and lng must be numbers' }), { status: 400, headers: CORS });
+        }
+        const did = normPhone(driver_id);
+        await env.GPS_STORE.put(`base:${did}`, JSON.stringify({ lat, lng }));
+        return new Response(JSON.stringify({ ok: true, base: { lat, lng } }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
+      }
+    }
+
+    if (path === '/base' && request.method === 'GET') {
+      try {
+        const did = normPhone(url.searchParams.get('driver_id') || '');
+        if (!did) return new Response(JSON.stringify({ error: 'driver_id required' }), { status: 400, headers: CORS });
+        return new Response(JSON.stringify({ ok: true, base: await getBase(env, did) }), { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
       }
@@ -246,9 +304,20 @@ export default {
         }
         const did = normPhone(driver_id);
         const raw = await env.GPS_STORE.get(`driver:${did}`);
-        const existing = raw ? JSON.parse(raw) : { driver_id: did, lat: 42.6977, lng: 23.3219 };
+        const existing = raw ? JSON.parse(raw) : { driver_id: did, lat: BASE_FALLBACK.lat, lng: BASE_FALLBACK.lng };
         existing.online = !!online;
         existing.updated_at = Date.now();
+        if (!existing.online) {
+          /* СТОП: истинската точка не се запазва изобщо. */
+          const base = await getBase(env, did);
+          existing.lat = base.lat;
+          existing.lng = base.lng;
+          existing.approx = true;
+          existing.at_base = true;
+        } else {
+          delete existing.approx;
+          delete existing.at_base;
+        }
         await env.GPS_STORE.put(`driver:${did}`, JSON.stringify(existing), { expirationTtl: online ? 300 : 86400 });
         return new Response(JSON.stringify({ ok: true }), { headers: CORS });
       } catch (e) {
