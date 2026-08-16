@@ -12,7 +12,8 @@ const DRIVER_TOKENS = {
   '1': 'fishtaxi_emil_2026_secret',
 };
 
-const ADMIN_PASSWORD = 'fishtaxi_admin_2026'; // Emil changes this later
+// ADMIN_PASSWORD е премахната: константа в публично repo не е тайна.
+// Админ достъпът се чете от Worker secret ADMIN_TOKEN (виж checkAdminPass).
 const OFFLINE_AFTER_MS = 2 * 60 * 1000;
 
 function genId() {
@@ -32,15 +33,26 @@ function genToken() {
   return 'ft_' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Auth: hardcoded legacy tokens first (Emil = "1"), then KV token:{phone}
-// Ако има admin:token в KV — ВАЖИ САМО ТОЙ (паролите са пенсионирани).
-// Иначе: legacy режим (admin:password от KV или константата).
+// Сравнение в постоянно време — за да не изтича дължина/съвпадение по време.
+function adminSafeEq(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
+// Ред на проверка:
+//   1. Worker secret ADMIN_TOKEN — каноничният източник.
+//   2. KV admin:token — преходно, докато секретът се разнесе навсякъде.
+// Трета опция няма. Ако и двете липсват, админът е затворен — това е
+// нарочно: по-добре заключена врата, отколкото врата с публичен ключ.
 async function checkAdminPass(env, pass) {
   if (!pass) return false;
+  if (env.ADMIN_TOKEN && adminSafeEq(pass, env.ADMIN_TOKEN)) return true;
   const token = await env.GPS_STORE.get('admin:token');
-  if (token) return pass === token;
-  const stored = await env.GPS_STORE.get('admin:password');
-  return pass === (stored || ADMIN_PASSWORD);
+  if (token && adminSafeEq(pass, token)) return true;
+  return false;
 }
 
 async function checkToken(env, driver_id, token) {
