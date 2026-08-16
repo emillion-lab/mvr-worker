@@ -1,0 +1,64 @@
+name: Patch Driver Tokens
+# Маха DRIVER_TOKENS от src/worker.js. Токените остават само в KV.
+#
+# ВАЖНО: пусни го САМО ако KV ключът token:1 вече съществува,
+# иначе шофьор 1 остава без вход.
+#
+# Този workflow комитва с GITHUB_TOKEN, което НЕ тригерва Deploy Worker.
+# Затова накрая сам пуска деплоя.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply patch
+        run: python3 patch_driver_tokens.py
+
+      - name: Syntax check
+        run: |
+          node --check src/worker.js
+          echo "SYNTAX OK"
+
+      - name: Verify the hardcoded token is gone
+        run: |
+          if grep -q "fishtaxi_emil_2026_secret" src/worker.js; then
+            echo "ГРЕШКА: старият токен още е в кода"; exit 1
+          fi
+          if grep -q "DRIVER_TOKENS\[" src/worker.js; then
+            echo "ГРЕШКА: остана употреба на DRIVER_TOKENS"; exit 1
+          fi
+          grep -q "adminSafeEq(stored, token)" src/worker.js || { echo "ГРЕШКА: checkToken не е обновен"; exit 1; }
+          echo "CLEAN"
+
+      - name: Commit
+        run: |
+          git config user.name  "ci"
+          git config user.email "ci@fish.taxi"
+          if git diff --quiet src/worker.js; then
+            echo "no change"
+          else
+            git add src/worker.js
+            git commit -m "security: driver tokens only from KV"
+            git fetch origin main && git rebase origin/main || true
+            git push
+          fi
+
+      - name: Trigger deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/deploy.yml/dispatches" \
+            -d '{"ref":"main"}'
+          echo "deploy dispatched"
