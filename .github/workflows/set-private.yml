@@ -1,0 +1,43 @@
+name: Set Repo Private
+# Прави mvr-worker private през GitHub API.
+# Изисква PAT с "Administration: Read and write" върху emillion-lab.
+# Ако GH_DISPATCH_TOKEN няма това право, API-то връща 403 и нищо не се променя.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  privatize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Flip visibility
+        env:
+          PAT: ${{ secrets.GH_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$PAT" ]; then
+            echo "ГРЕШКА: GH_DISPATCH_TOKEN не е зададен"; exit 1
+          fi
+          CODE=$(curl -s -o /tmp/out.json -w "%{http_code}" -X PATCH \
+            "https://api.github.com/repos/${{ github.repository }}" \
+            -H "Authorization: Bearer $PAT" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -d '{"private":true}')
+          echo "HTTP $CODE"
+          python3 -c "
+          import json
+          d = json.load(open('/tmp/out.json'))
+          if 'private' in d:
+              print('private =', d['private'])
+          else:
+              print('съобщение:', d.get('message'))
+          "
+          if [ "$CODE" != "200" ]; then
+            echo "Не мина — визуализацията трябва да се смени ръчно:"
+            echo "Settings -> General -> Change visibility"
+            exit 1
+          fi
+          echo "ГОТОВО: repo-то е private"
