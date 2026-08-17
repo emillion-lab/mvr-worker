@@ -1,0 +1,58 @@
+name: Patch Base LastKnown
+# Офлайн шофьор без база → последната известна точка, загрубена до ~1 км.
+# Със зададена base:{id} → точно на базата.
+# Комитът е с GITHUB_TOKEN и НЕ тригерва Deploy Worker → деплоят се вика изрично.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Приложи патча
+        run: python3 patch_base_lastknown.py src/worker.js
+
+      - name: Синтаксис
+        run: node --check src/worker.js && echo "SYNTAX OK"
+
+      - name: Провери резултата
+        run: |
+          grep -q "FT-BASE-LASTKNOWN" src/worker.js || { echo "липсва маркерът"; exit 1; }
+          grep -q "function coarsen" src/worker.js  || { echo "липсва coarsen"; exit 1; }
+          grep -q "maskIfOffline" src/worker.js     || { echo "липсва maskIfOffline"; exit 1; }
+          grep -q "path === '/admin/base'" src/worker.js || { echo "липсва /admin/base"; exit 1; }
+          echo "CLEAN"
+
+      - name: Commit
+        run: |
+          git config user.name  "ci"
+          git config user.email "ci@fish.taxi"
+          if git diff --quiet src/worker.js; then
+            echo "no change"
+          else
+            git add src/worker.js
+            git commit -m "base: офлайн = загрубен last known, база има предимство"
+            git fetch origin main && git rebase origin/main || true
+            git push
+          fi
+
+      - name: Trigger deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/deploy.yml/dispatches" \
+            -d '{"ref":"main"}'
+          echo "deploy dispatched"
