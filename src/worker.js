@@ -96,19 +96,36 @@ async function getBase(env, did) {
       if (typeof b.lat === 'number' && typeof b.lng === 'number') return b;
     }
   } catch (e) {}
-  return fallbackBase(did);
+  return null;
 }
 
 /* Връща копие на записа с подменени координати, ако е офлайн. */
 async function maskIfOffline(env, d) {
   if (d.online) return d;
+  /* FT-BASE-LASTKNOWN
+     1) има зададена база → точно тя;
+     2) няма → последната известна точка, загрубена до ~1 км;
+     3) няма и позиция → разпръснатата резервна точка. */
   const base = await getBase(env, d.driver_id);
-  return Object.assign({}, d, {
-    lat: base.lat,
-    lng: base.lng,
-    approx: true,          // за интерфейса: това е база, не жива позиция
-    at_base: true
-  });
+  if (base) {
+    return Object.assign({}, d, { lat: base.lat, lng: base.lng, approx: true, at_base: true });
+  }
+  if (typeof d.lat !== 'number' || typeof d.lng !== 'number') {
+    const f = fallbackBase(d.driver_id);
+    return Object.assign({}, d, { lat: f.lat, lng: f.lng, approx: true, at_base: true });
+  }
+  const c = coarsen(d.driver_id, d.lat, d.lng);
+  return Object.assign({}, d, { lat: c.lat, lng: c.lng, approx: true, at_base: false });
+}
+
+/* ~1 км решетка + постоянно отместване ±~300 м по driver_id.
+   Точният адрес не излиза през публичното API, но кварталът се вижда. */
+function coarsen(did, lat, lng) {
+  const h = baseHash(String(did || 'x'));
+  const dy = (((h >>> 8) & 0xff) - 128) / 45000;
+  const dx = (((h >>> 20) & 0xff) - 128) / 33000;
+  return { lat: Math.round((Math.round(lat * 100) / 100 + dy) * 1e5) / 1e5,
+           lng: Math.round((Math.round(lng * 100) / 100 + dx) * 1e5) / 1e5 };
 }
 
 async function checkToken(env, driver_id, token) {
@@ -318,7 +335,7 @@ export default {
       try {
         const did = normPhone(url.searchParams.get('driver_id') || '');
         if (!did) return new Response(JSON.stringify({ error: 'driver_id required' }), { status: 400, headers: CORS });
-        return new Response(JSON.stringify({ ok: true, base: await getBase(env, did) }), { headers: CORS });
+        return new Response(JSON.stringify({ ok: true, base: await getBase(env, did), fallback: fallbackBase(did) }), { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
       }
@@ -337,12 +354,15 @@ export default {
         existing.online = !!online;
         existing.updated_at = Date.now();
         if (!existing.online) {
-          /* СТОП: истинската точка не се запазва изобщо. */
+          /* СТОП: с база — сядаме на нея. Без база — пазим последната
+             точка, но навън тя излиза загрубена (maskIfOffline). */
           const base = await getBase(env, did);
-          existing.lat = base.lat;
-          existing.lng = base.lng;
+          if (base) {
+            existing.lat = base.lat;
+            existing.lng = base.lng;
+            existing.at_base = true;
+          }
           existing.approx = true;
-          existing.at_base = true;
         } else {
           delete existing.approx;
           delete existing.at_base;
@@ -1097,7 +1117,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
     }
 
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.9.0' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.9.1' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
