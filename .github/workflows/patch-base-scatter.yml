@@ -1,0 +1,58 @@
+name: Patch Base Scatter
+# Офлайн шофьорите спират да се трупат в центъра на София.
+# Комитът е с GITHUB_TOKEN и НЕ тригерва Deploy Worker,
+# затова накрая деплоят се вика изрично.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Приложи патча
+        run: python3 patch_base_scatter.py src/worker.js
+
+      - name: Синтаксис
+        run: node --check src/worker.js && echo "SYNTAX OK"
+
+      - name: Провери резултата
+        run: |
+          grep -q "FT-BASE-SCATTER" src/worker.js || { echo "липсва маркерът"; exit 1; }
+          grep -q "fallbackBase" src/worker.js    || { echo "липсва fallbackBase"; exit 1; }
+          grep -q "path === '/admin/base'" src/worker.js || { echo "липсва /admin/base"; exit 1; }
+          if grep -q "BASE_FALLBACK" src/worker.js; then echo "остатък от BASE_FALLBACK"; exit 1; fi
+          echo "CLEAN"
+
+      - name: Commit
+        run: |
+          git config user.name  "ci"
+          git config user.email "ci@fish.taxi"
+          if git diff --quiet src/worker.js; then
+            echo "no change"
+          else
+            git add src/worker.js
+            git commit -m "base: офлайн шофьорите се разпръскват, + /admin/base"
+            git fetch origin main && git rebase origin/main || true
+            git push
+          fi
+
+      - name: Trigger deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/deploy.yml/dispatches" \
+            -d '{"ref":"main"}'
+          echo "deploy dispatched"
