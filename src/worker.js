@@ -57,7 +57,36 @@ async function checkAdminPass(env, pass) {
 /* ─── FT-PRIVACY-BASE ───
    Офлайн шофьор не показва къде наистина е. Показва базата си.
    Домашният адрес не бива да се извежда от публично API. */
-const BASE_FALLBACK = { lat: 42.6977, lng: 23.3219 };   // център на София
+/* FT-BASE-SCATTER — без зададена база офлайн шофьорите се разпръскват.
+   Точката е детерминирана по driver_id: една и съща при всяко зареждане,
+   различна за различните шофьори, и не е центърът на града. */
+const BASE_POINTS = [
+  { lat: 42.6245, lng: 23.3521 },   // Ring Mall
+  { lat: 42.6833, lng: 23.2890 },   // Лагера
+  { lat: 42.6510, lng: 23.3760 },   // Младост
+  { lat: 42.7180, lng: 23.2800 },   // Люлин
+  { lat: 42.6690, lng: 23.2830 },   // Овча купел
+  { lat: 42.7090, lng: 23.3320 },   // Централна гара
+  { lat: 42.6660, lng: 23.3540 },   // Студентски град
+  { lat: 42.7000, lng: 23.4030 }    // Дружба
+];
+
+function baseHash(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+/* Постоянно отместване ±~160 м: двама в един квартал не се застъпват,
+   но точката е една и съща при всяка заявка. */
+function fallbackBase(did) {
+  const h = baseHash(String(did || 'x'));
+  const p = BASE_POINTS[h % BASE_POINTS.length];
+  const dy = (((h >>> 8) & 0x1ff) - 256) / 170000;
+  const dx = (((h >>> 20) & 0x1ff) - 256) / 130000;
+  return { lat: Math.round((p.lat + dy) * 1e5) / 1e5,
+           lng: Math.round((p.lng + dx) * 1e5) / 1e5 };
+}
 
 async function getBase(env, did) {
   try {
@@ -67,7 +96,7 @@ async function getBase(env, did) {
       if (typeof b.lat === 'number' && typeof b.lng === 'number') return b;
     }
   } catch (e) {}
-  return BASE_FALLBACK;
+  return fallbackBase(did);
 }
 
 /* Връща копие на записа с подменени координати, ако е офлайн. */
@@ -304,7 +333,7 @@ export default {
         }
         const did = normPhone(driver_id);
         const raw = await env.GPS_STORE.get(`driver:${did}`);
-        const existing = raw ? JSON.parse(raw) : { driver_id: did, lat: BASE_FALLBACK.lat, lng: BASE_FALLBACK.lng };
+        const existing = raw ? JSON.parse(raw) : Object.assign({ driver_id: did }, fallbackBase(did));
         existing.online = !!online;
         existing.updated_at = Date.now();
         if (!existing.online) {
@@ -555,6 +584,32 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
           if (raw && JSON.parse(raw).driver_id === phoneId) await env.GPS_STORE.delete(key.name);
         }
         return new Response(JSON.stringify({ ok: true }), { headers: CORS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
+      }
+    }
+
+    // ── Admin: база на шофьор (FT-BASE-SCATTER) ───────────
+    // Задава base:{id} без токена на шофьора. Без lat/lng трие базата
+    // и връща шофьора на разпръснатата точка по подразбиране.
+    if (path === '/admin/base' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { pass, driver_id, lat, lng } = body;
+        if (!(await checkAdminPass(env, pass))) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+        }
+        const did = normPhone(driver_id);
+        if (!did) return new Response(JSON.stringify({ error: 'driver_id required' }), { status: 400, headers: CORS });
+        if (lat == null && lng == null) {
+          await env.GPS_STORE.delete(`base:${did}`);
+          return new Response(JSON.stringify({ ok: true, cleared: true, base: fallbackBase(did) }), { headers: CORS });
+        }
+        if (typeof lat !== 'number' || typeof lng !== 'number') {
+          return new Response(JSON.stringify({ error: 'lat and lng must be numbers' }), { status: 400, headers: CORS });
+        }
+        await env.GPS_STORE.put(`base:${did}`, JSON.stringify({ lat, lng }));
+        return new Response(JSON.stringify({ ok: true, driver_id: did, base: { lat, lng } }), { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
       }
@@ -1042,7 +1097,7 @@ if(localStorage.getItem('ftp')){document.getElementById('pass').value=localStora
     }
 
     if (path === '/' || path === '/health') {
-      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.8.1' }), { headers: CORS });
+      return new Response(JSON.stringify({ service: 'fish.taxi Worker', status: 'ok', version: '2.9.0' }), { headers: CORS });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
