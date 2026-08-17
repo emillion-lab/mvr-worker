@@ -1,4 +1,4 @@
-== Deploy report Mon Aug 17 22:01:29 UTC 2026 ==
+== Deploy report Mon Aug 17 22:02:00 UTC 2026 ==
 --- coords в src/worker.js ---
 5
 --- upload script ---
@@ -6,17 +6,17 @@
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-08-17T22:01:29.906103Z",
+    "modified_on": "2026-08-17T22:02:00.988814Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "a736bb124c44467db88f9b7c952f1687",
+    "deployment_id": "bfb26974719045b78f95b6d3841b6a91",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
     "has_modules": true,
-    "etag": "cf29ebd2194b0a49477d229217db25562bf71c9a511e7a4d750d66ef5daa466a",
+    "etag": "58d171478b64245bd7143f66b9eefbc987d4ddf6b8bf970c886bb27abe715eda",
     "handlers": [
       "fetch"
     ],
@@ -32,7 +32,7 @@
 
 
 --- live /health ---
-{"service":"fish.taxi Worker","status":"ok","version":"2.8.1"}
+{"service":"fish.taxi Worker","status":"ok","version":"2.9.0"}
 --- /dispatch без ключ (очаква се 401) ---
 HTTP 401
 --- /traffic СВЕЖО (без кеш) ---
