@@ -56,10 +56,19 @@ jobs:
             curl -s -X DELETE -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" >> $R
           elif [ "$A" = "put" ]; then
             curl -s -X PUT -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" --data '${{ github.event.inputs.value }}' >> $R
+            echo "" >> $R
+            echo "--- verify get ---" >> $R
+            curl -s -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" >> $R
           elif [ "$A" = "list" ]; then
             curl -s -H "Authorization: Bearer $CF_TOKEN" "$BASE/keys?limit=100" >> $R
           fi
           echo "" >> $R
           git config user.name "ci"; git config user.email "ci@fish.taxi"
           git add $R && git commit -m "kv report [skip ci]" || true
-          git push
+          # Паралелен патч workflow бута преди нас → rebase, иначе push-ът пада
+          # и отчетът никога не стига до репото (мълчалив провал).
+          for i in 1 2 3; do
+            git fetch origin main && git rebase origin/main || git rebase --abort
+            git push && break
+            echo "push retry $i"; sleep 5
+          done
