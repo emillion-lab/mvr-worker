@@ -13,7 +13,7 @@ const CORS = {
 
 // ADMIN_PASSWORD е премахната: константа в публично repo не е тайна.
 // Админ достъпът се чете от Worker secret ADMIN_TOKEN (виж checkAdminPass).
-const OFFLINE_AFTER_MS = 2 * 60 * 1000;
+const OFFLINE_AFTER_MS = 6 * 60 * 1000;
 
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
