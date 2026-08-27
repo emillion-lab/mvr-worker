@@ -1,4 +1,4 @@
-== Deploy report Thu Aug 27 10:44:07 UTC 2026 ==
+== Deploy report Thu Aug 27 13:00:49 UTC 2026 ==
 --- coords в src/worker.js ---
 5
 --- OFFLINE_AFTER_MS в билда ---
@@ -8,12 +8,12 @@ OFFLINE_AFTER_MS = 6 * 60
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-08-27T10:44:07.507067Z",
+    "modified_on": "2026-08-27T13:00:50.282117Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "f29eb056440743c3ba8d345b9ad7a3fd",
+    "deployment_id": "2fc25e27e31d480981582fa7a91838b8",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
@@ -38,7 +38,7 @@ OFFLINE_AFTER_MS = 6 * 60
 --- /dispatch без ключ (очаква се 401) ---
 HTTP 401
 --- /traffic СВЕЖО (без кеш) ---
-скорост: 57/78 км/ч · ratio 0.73
+скорост: 79/79 км/ч · ratio 1
 ТОЧКИ ГЕОМЕТРИЯ: 22
 първа: [42.68174, 23.34986] · последна: [42.67419, 23.36045]
 
