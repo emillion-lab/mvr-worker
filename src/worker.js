@@ -313,6 +313,9 @@ export default {
           d.online = d.online && (now - d.updated_at) < OFFLINE_AFTER_MS;
           /* дори да не е натиснат СТОП — щом е офлайн, точката се маскира */
           const pub = await maskIfOffline(env, d);
+          /* FT-LEGACYID-V1: истинското id остава достъпно за стария
+             фронтенд, който съпоставя по него. Псевдонимът важи паралелно. */
+          pub.legacy_id = pub.driver_id;
           pub.driver_id = pubId(pub.driver_id);
           drivers.push(pub);
         }
