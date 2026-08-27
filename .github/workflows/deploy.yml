@@ -22,6 +22,8 @@ jobs:
           python3 patch_offline_window.py
           # legacy_id до псевдонима в /gps — idempotent
           python3 patch_legacy_id.py
+          # revert на pubId подмяната — истинско id в /gps, както преди 26 авг
+          python3 patch_pubid_revert.py
           node --check src/worker.js && echo "syntax OK"
           # ако скриптът е добавил нещо, върни го в repo-то
           if ! git diff --quiet src/worker.js; then
@@ -49,8 +51,7 @@ jobs:
           open('/tmp/build/worker.js', 'w').write(src)
           print('built bytes:', len(src))
           print('има coords в билда:', 'coords:' in src)
-          print('има /dispatch в билда:', "path === '/dispatch'" in src)
-          print('има legacy_id в билда:', 'legacy_id' in src)
+          print('има pubId подмяна:', 'pub.driver_id = pubId' in src)
           EOF
 
       - name: Deploy via Cloudflare API
@@ -60,12 +61,8 @@ jobs:
           R="deploy-report.txt"
           echo "== Deploy report $(date -u) ==" > $R
           ACC="74820d71c551391ce31d309c2fcb091c"
-          echo "--- coords в src/worker.js ---" >> $R
-          grep -c "coords" src/worker.js >> $R || echo 0 >> $R
-          echo "--- OFFLINE_AFTER_MS в билда ---" >> $R
-          grep -o "OFFLINE_AFTER_MS = [0-9] \* 60" /tmp/build/worker.js >> $R || echo "not found" >> $R
-          echo "--- legacy_id в билда ---" >> $R
-          grep -c "legacy_id" /tmp/build/worker.js >> $R || echo 0 >> $R
+          echo "--- pubId подмяна още ли е в билда (очаква се 0) ---" >> $R
+          grep -c "pub.driver_id = pubId" /tmp/build/worker.js >> $R || echo 0 >> $R
           echo "--- upload script ---" >> $R
           curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy" \
             -H "Authorization: Bearer $CF_TOKEN" \
@@ -80,12 +77,8 @@ jobs:
           sleep 6
           curl -s https://mvr-proxy.mihov-emil.workers.dev/health >> $R
           echo "" >> $R
-          echo "--- live /gps (проверка за legacy_id + driver_id) ---" >> $R
+          echo "--- live /gps (трябва да показва истинско driver_id) ---" >> $R
           curl -s "https://mvr-proxy.mihov-emil.workers.dev/gps" | head -c 500 >> $R
-          echo "" >> $R
-          echo "--- /dispatch без ключ (очаква се 401) ---" >> $R
-          curl -s -o /dev/null -w "HTTP %{http_code}" \
-            "https://mvr-proxy.mihov-emil.workers.dev/dispatch" >> $R
           echo "" >> $R
           git config user.name "ci"; git config user.email "ci@fish.taxi"
           git add deploy-report.txt
