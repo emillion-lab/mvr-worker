@@ -1,14 +1,13 @@
 name: Redeploy Only
 
-# Минимален деплой: качва текущия src/worker.js в Cloudflare и толкова.
-# Без patch-ове, без git push, без rebase — за да не пада на странични неща.
-# Целта: worker-ът да прочете новите secrets (GH_TOKEN, DISPATCH_KEY).
+# Минимален деплой: прилага чакащите patch-ове, качва worker.js в Cloudflare.
+# Без git push, без rebase — не пада на странични неща.
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   redeploy:
@@ -16,7 +15,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build worker (same as deploy, no patches)
+      - name: Apply pending patches (idempotent)
+        run: |
+          python3 patch_orgs_fix.py || true
+          node --check src/worker.js && echo "syntax OK"
+          # commit обратно, за да остане в репото (без rebase дрма)
+          if ! git diff --quiet src/worker.js; then
+            git config user.name "ci"; git config user.email "ci@fish.taxi"
+            git add src/worker.js patch_orgs_fix.py 2>/dev/null || git add src/worker.js
+            git commit -m "worker: orgs->users fix [skip ci]" || true
+            git push || echo "push failed — продължавам, важен е деплоят"
+          fi
+
+      - name: Build worker
         run: |
           python3 - <<'EOF'
           src = open('src/worker.js').read()
@@ -32,6 +43,7 @@ jobs:
           os.makedirs('/tmp/build', exist_ok=True)
           open('/tmp/build/worker.js', 'w').write(src)
           print('built bytes:', len(src))
+          print('има users fallback:', 'FT-ORGS-FIX-V1' in src)
           EOF
 
       - name: Upload to Cloudflare
@@ -44,13 +56,7 @@ jobs:
             -F 'metadata={"main_module":"worker.js","keep_bindings":["secret_text","plain_text"],"bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"}],"compatibility_date":"2024-01-01"};type=application/json' \
             -F "worker.js=@/tmp/build/worker.js;type=application/javascript+module" \
             -o /tmp/cf.json
-          echo "--- Cloudflare отговор ---"
           cat /tmp/cf.json
-          echo ""
-          # провери дали качването успя
           python3 -c "import json; d=json.load(open('/tmp/cf.json')); exit(0 if d.get('success') else 1)" || { echo "::error::Cloudflare качването се провали"; exit 1; }
-          echo "✅ Worker качен успешно"
-          sleep 6
-          echo "--- проверка: worker вижда ли GH_TOKEN (без да го показва) ---"
-          # /health не иска pass? иска. просто потвърждаваме че worker-ът е жив
-          curl -s https://mvr-proxy.mihov-emil.workers.dev/health
+          echo ""
+          echo "✅ Worker качен"
