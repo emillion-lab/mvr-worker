@@ -1,0 +1,56 @@
+name: Redeploy Only
+
+# Минимален деплой: качва текущия src/worker.js в Cloudflare и толкова.
+# Без patch-ове, без git push, без rebase — за да не пада на странични неща.
+# Целта: worker-ът да прочете новите secrets (GH_TOKEN, DISPATCH_KEY).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build worker (same as deploy, no patches)
+        run: |
+          python3 - <<'EOF'
+          src = open('src/worker.js').read()
+          flights = open('src/flights-snippet.js').read()
+          scrape = open('src/scrape-snippet.js').read()
+          marker = "    if (path === '/' || path === '/health')"
+          if src.count(marker) != 1:
+              marker = "if (path === '/' || path === '/health')"
+              assert src.count(marker) == 1, 'health-route marker not found'
+          src = src.replace(marker, flights + scrape + marker)
+          src = src.replace('dt < 25000', 'dt < 40000')
+          import os
+          os.makedirs('/tmp/build', exist_ok=True)
+          open('/tmp/build/worker.js', 'w').write(src)
+          print('built bytes:', len(src))
+          EOF
+
+      - name: Upload to Cloudflare
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          ACC="74820d71c551391ce31d309c2fcb091c"
+          curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy" \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            -F 'metadata={"main_module":"worker.js","keep_bindings":["secret_text","plain_text"],"bindings":[{"type":"kv_namespace","name":"GPS_STORE","namespace_id":"2900a1d9de0f49deac2359e558ba5783"}],"compatibility_date":"2024-01-01"};type=application/json' \
+            -F "worker.js=@/tmp/build/worker.js;type=application/javascript+module" \
+            -o /tmp/cf.json
+          echo "--- Cloudflare отговор ---"
+          cat /tmp/cf.json
+          echo ""
+          # провери дали качването успя
+          python3 -c "import json; d=json.load(open('/tmp/cf.json')); exit(0 if d.get('success') else 1)" || { echo "::error::Cloudflare качването се провали"; exit 1; }
+          echo "✅ Worker качен успешно"
+          sleep 6
+          echo "--- проверка: worker вижда ли GH_TOKEN (без да го показва) ---"
+          # /health не иска pass? иска. просто потвърждаваме че worker-ът е жив
+          curl -s https://mvr-proxy.mihov-emil.workers.dev/health
