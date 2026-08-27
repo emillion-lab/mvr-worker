@@ -1,4 +1,4 @@
-== Deploy report Thu Aug 27 13:01:22 UTC 2026 ==
+== Deploy report Thu Aug 27 13:11:08 UTC 2026 ==
 --- coords в src/worker.js ---
 5
 --- OFFLINE_AFTER_MS в билда ---
@@ -10,12 +10,12 @@ OFFLINE_AFTER_MS = 6 * 60
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-08-27T13:01:22.282767Z",
+    "modified_on": "2026-08-27T13:11:09.120692Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "a72fb37c5f3e41b4bfe4a55a1db25017",
+    "deployment_id": "6f45514ed8e0494fa9c75fb89d4af14c",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
@@ -38,6 +38,6 @@ OFFLINE_AFTER_MS = 6 * 60
 --- live /health ---
 {"service":"fish.taxi Worker","status":"ok","version":"2.9.1"}
 --- live /gps (проверка за legacy_id + driver_id) ---
-{"ok":true,"count":3,"online":1,"drivers":[{"driver_id":"d1qkwq35","lat":42.6245,"lng":23.3521,"online":false,"updated_at":1787833717168,"at_base":true,"approx":true,"legacy_id":"1"},{"driver_id":"d1c1tsik","lat":42.4910521,"lng":23.3941344,"online":true,"updated_at":1787835597655,"legacy_id":"359878592888"},{"driver_id":"dn1cqjx","lat":42.67756,"lng":23.29152,"online":false,"updated_at":1787770078696,"approx":true,"at_base":false,"legacy_id":"359897644448"}]}
+{"ok":true,"count":3,"online":1,"drivers":[{"driver_id":"d1qkwq35","lat":42.6245,"lng":23.3521,"online":false,"updated_at":1787833717168,"at_base":true,"approx":true,"legacy_id":"1"},{"driver_id":"d1c1tsik","lat":42.4910603,"lng":23.3941254,"online":true,"updated_at":1787836091254,"legacy_id":"359878592888"},{"driver_id":"dn1cqjx","lat":42.67756,"lng":23.29152,"online":false,"updated_at":1787770078696,"approx":true,"at_base":false,"legacy_id":"359897644448"}]}
 --- /dispatch без ключ (очаква се 401) ---
 HTTP 401
