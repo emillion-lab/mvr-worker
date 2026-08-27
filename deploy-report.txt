@@ -1,24 +1,26 @@
-== Deploy report Thu Aug 27 13:00:49 UTC 2026 ==
+== Deploy report Thu Aug 27 13:01:22 UTC 2026 ==
 --- coords в src/worker.js ---
 5
 --- OFFLINE_AFTER_MS в билда ---
 OFFLINE_AFTER_MS = 6 * 60
+--- legacy_id в билда ---
+1
 --- upload script ---
 --- суров отговор от Cloudflare ---
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-08-27T13:00:50.282117Z",
+    "modified_on": "2026-08-27T13:01:22.282767Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "2fc25e27e31d480981582fa7a91838b8",
+    "deployment_id": "a72fb37c5f3e41b4bfe4a55a1db25017",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
     "has_modules": true,
-    "etag": "8440f6f3ccf245f2324acc3bf2c7bdf2704b9ad928bf3cd272bd01602fd84879",
+    "etag": "843c73927c7f689de1b1d17b8c355645cf046808ae6f7fb6a4d60139edd9334b",
     "handlers": [
       "fetch"
     ],
@@ -35,17 +37,7 @@ OFFLINE_AFTER_MS = 6 * 60
 
 --- live /health ---
 {"service":"fish.taxi Worker","status":"ok","version":"2.9.1"}
+--- live /gps (проверка за legacy_id + driver_id) ---
+{"ok":true,"count":3,"online":1,"drivers":[{"driver_id":"d1qkwq35","lat":42.6245,"lng":23.3521,"online":false,"updated_at":1787833717168,"at_base":true,"approx":true,"legacy_id":"1"},{"driver_id":"d1c1tsik","lat":42.4910521,"lng":23.3941344,"online":true,"updated_at":1787835597655,"legacy_id":"359878592888"},{"driver_id":"dn1cqjx","lat":42.67756,"lng":23.29152,"online":false,"updated_at":1787770078696,"approx":true,"at_base":false,"legacy_id":"359897644448"}]}
 --- /dispatch без ключ (очаква се 401) ---
 HTTP 401
---- /traffic СВЕЖО (без кеш) ---
-скорост: 79/79 км/ч · ratio 1
-ТОЧКИ ГЕОМЕТРИЯ: 22
-първа: [42.68174, 23.34986] · последна: [42.67419, 23.36045]
-
---- live /scrape eventim (first 120b) ---
-<!DOCTYPE html>
-<html lang="bg">
-<head>
-    <title>Начало - Ndk.bg</title>
-    <meta charset="UTF-8">
-    <meta na
