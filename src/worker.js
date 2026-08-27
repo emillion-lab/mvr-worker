@@ -999,7 +999,12 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
       };
       try {
         if (!repo) {
-          const r = await fetch('https://api.github.com/orgs/' + owner + '/repos?per_page=100&sort=pushed', { headers: H });
+          /* FT-ORGS-FIX-V1: emillion-lab е user, не org. Пробвай /orgs/,
+             при 404 падни на /users/. */
+          let r = await fetch('https://api.github.com/orgs/' + owner + '/repos?per_page=100&sort=pushed', { headers: H });
+          if (r.status === 404) {
+            r = await fetch('https://api.github.com/users/' + owner + '/repos?per_page=100&sort=pushed', { headers: H });
+          }
           const d = await r.json();
           if (!r.ok) return new Response(JSON.stringify({ error: d.message || 'github error' }), { status: r.status, headers: CORS });
           return new Response(JSON.stringify({ ok: true, repos: (d || []).map(x => x.name) }), { headers: CORS });
