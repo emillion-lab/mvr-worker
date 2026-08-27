@@ -18,12 +18,14 @@ jobs:
         run: |
           # /dispatch endpoint — idempotent, сам се пропуска ако вече е вътре
           python3 patch_dispatch.py
+          # офлайн прозорец 2→6 мин — idempotent
+          python3 patch_offline_window.py
           node --check src/worker.js && echo "syntax OK"
           # ако скриптът е добавил нещо, върни го в repo-то
           if ! git diff --quiet src/worker.js; then
             git config user.name "ci"; git config user.email "ci@fish.taxi"
             git add src/worker.js
-            git commit -m "worker: /dispatch endpoint [skip ci]"
+            git commit -m "worker: pending patches [skip ci]"
             git fetch origin main && git rebase origin/main || true
             git push || echo "push failed, продължавам с деплоя"
           fi
@@ -57,6 +59,8 @@ jobs:
           ACC="74820d71c551391ce31d309c2fcb091c"
           echo "--- coords в src/worker.js ---" >> $R
           grep -c "coords" src/worker.js >> $R || echo 0 >> $R
+          echo "--- OFFLINE_AFTER_MS в билда ---" >> $R
+          grep -o "OFFLINE_AFTER_MS = [0-9] \* 60" /tmp/build/worker.js >> $R || echo "not found" >> $R
           echo "--- upload script ---" >> $R
           curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy" \
             -H "Authorization: Bearer $CF_TOKEN" \
