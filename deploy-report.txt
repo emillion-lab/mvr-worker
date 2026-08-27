@@ -1,26 +1,23 @@
-== Deploy report Thu Aug 27 13:11:08 UTC 2026 ==
---- coords в src/worker.js ---
-5
---- OFFLINE_AFTER_MS в билда ---
-OFFLINE_AFTER_MS = 6 * 60
---- legacy_id в билда ---
-1
+== Deploy report Thu Aug 27 13:11:43 UTC 2026 ==
+--- pubId подмяна още ли е в билда (очаква се 0) ---
+0
+0
 --- upload script ---
 --- суров отговор от Cloudflare ---
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-08-27T13:11:09.120692Z",
+    "modified_on": "2026-08-27T13:11:43.618194Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "6f45514ed8e0494fa9c75fb89d4af14c",
+    "deployment_id": "3cb4cc192daa4b5a82ee315f47d76412",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
     "has_modules": true,
-    "etag": "843c73927c7f689de1b1d17b8c355645cf046808ae6f7fb6a4d60139edd9334b",
+    "etag": "ac11e5744701c52b5c0d2e0a0407cecd5c10684f945f586194b40b4760307136",
     "handlers": [
       "fetch"
     ],
@@ -37,7 +34,5 @@ OFFLINE_AFTER_MS = 6 * 60
 
 --- live /health ---
 {"service":"fish.taxi Worker","status":"ok","version":"2.9.1"}
---- live /gps (проверка за legacy_id + driver_id) ---
-{"ok":true,"count":3,"online":1,"drivers":[{"driver_id":"d1qkwq35","lat":42.6245,"lng":23.3521,"online":false,"updated_at":1787833717168,"at_base":true,"approx":true,"legacy_id":"1"},{"driver_id":"d1c1tsik","lat":42.4910603,"lng":23.3941254,"online":true,"updated_at":1787836091254,"legacy_id":"359878592888"},{"driver_id":"dn1cqjx","lat":42.67756,"lng":23.29152,"online":false,"updated_at":1787770078696,"approx":true,"at_base":false,"legacy_id":"359897644448"}]}
---- /dispatch без ключ (очаква се 401) ---
-HTTP 401
+--- live /gps (трябва да показва истинско driver_id) ---
+{"ok":true,"count":3,"online":1,"drivers":[{"driver_id":"1","lat":42.6245,"lng":23.3521,"online":false,"updated_at":1787833717168,"at_base":true,"approx":true},{"driver_id":"359878592888","lat":42.4910603,"lng":23.3941254,"online":true,"updated_at":1787836091254},{"driver_id":"359897644448","lat":42.67756,"lng":23.29152,"online":false,"updated_at":1787770078696,"approx":true,"at_base":false}]}
