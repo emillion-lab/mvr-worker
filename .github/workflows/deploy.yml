@@ -20,6 +20,8 @@ jobs:
           python3 patch_dispatch.py
           # офлайн прозорец 2→6 мин — idempotent
           python3 patch_offline_window.py
+          # legacy_id до псевдонима в /gps — idempotent
+          python3 patch_legacy_id.py
           node --check src/worker.js && echo "syntax OK"
           # ако скриптът е добавил нещо, върни го в repo-то
           if ! git diff --quiet src/worker.js; then
@@ -48,6 +50,7 @@ jobs:
           print('built bytes:', len(src))
           print('има coords в билда:', 'coords:' in src)
           print('има /dispatch в билда:', "path === '/dispatch'" in src)
+          print('има legacy_id в билда:', 'legacy_id' in src)
           EOF
 
       - name: Deploy via Cloudflare API
@@ -61,6 +64,8 @@ jobs:
           grep -c "coords" src/worker.js >> $R || echo 0 >> $R
           echo "--- OFFLINE_AFTER_MS в билда ---" >> $R
           grep -o "OFFLINE_AFTER_MS = [0-9] \* 60" /tmp/build/worker.js >> $R || echo "not found" >> $R
+          echo "--- legacy_id в билда ---" >> $R
+          grep -c "legacy_id" /tmp/build/worker.js >> $R || echo 0 >> $R
           echo "--- upload script ---" >> $R
           curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/mvr-proxy" \
             -H "Authorization: Bearer $CF_TOKEN" \
@@ -75,27 +80,12 @@ jobs:
           sleep 6
           curl -s https://mvr-proxy.mihov-emil.workers.dev/health >> $R
           echo "" >> $R
+          echo "--- live /gps (проверка за legacy_id + driver_id) ---" >> $R
+          curl -s "https://mvr-proxy.mihov-emil.workers.dev/gps" | head -c 500 >> $R
+          echo "" >> $R
           echo "--- /dispatch без ключ (очаква се 401) ---" >> $R
           curl -s -o /dev/null -w "HTTP %{http_code}" \
             "https://mvr-proxy.mihov-emil.workers.dev/dispatch" >> $R
-          echo "" >> $R
-          echo "--- /traffic СВЕЖО (без кеш) ---" >> $R
-          curl -s "https://mvr-proxy.mihov-emil.workers.dev/traffic?pts=42.6752,23.3587&fresh=1" \
-          | python3 -c "
-          import json,sys
-          d = json.load(sys.stdin)
-          if d.get('error'): print('ГРЕШКА:', d['error']); raise SystemExit
-          x = (d.get('data') or [None])[0] or {}
-          if x.get('err'): print('TomTom върна', x['err']); raise SystemExit
-          c = x.get('coords') or []
-          print('скорост: %s/%s км/ч · ratio %s' % (x.get('cur'), x.get('free'), x.get('ratio')))
-          print('ТОЧКИ ГЕОМЕТРИЯ: %d' % len(c))
-          if c: print('първа:', c[0], '· последна:', c[-1])
-          else: print('!!! БЕЗ ГЕОМЕТРИЯ')
-          " >> $R
-          echo "" >> $R
-          echo "--- live /scrape eventim (first 120b) ---" >> $R
-          curl -s "https://mvr-proxy.mihov-emil.workers.dev/scrape?url=https://www.ndk.bg/" | head -c 120 >> $R
           echo "" >> $R
           git config user.name "ci"; git config user.email "ci@fish.taxi"
           git add deploy-report.txt
