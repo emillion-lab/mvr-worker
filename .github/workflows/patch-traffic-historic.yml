@@ -1,0 +1,28 @@
+name: patch-traffic-historic
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'patch_traffic_historic.py'
+      - '.github/workflows/patch-traffic-historic.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: /traffic-historic endpoint (KRES)
+        run: python3 patch_traffic_historic.py | tee traffic-historic-patch-report.txt
+      - name: Syntax check
+        run: node --check src/worker.js && echo "SYNTAX OK" >> traffic-historic-patch-report.txt
+      - name: Commit
+        run: |
+          git config user.name traffic-bot; git config user.email traffic@mvr
+          git add src/worker.js traffic-historic-patch-report.txt
+          git diff --cached --quiet || (git commit -m "worker: /traffic-historic за KRES" && git push)
