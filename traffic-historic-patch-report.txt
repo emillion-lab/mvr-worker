@@ -1,0 +1,2 @@
+OK /traffic-historic добавен (KRES — Routing API departAt/hist_s)
+SYNTAX OK
