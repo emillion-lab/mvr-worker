@@ -1,4 +1,4 @@
-== KV put base:1 Mon Aug 17 22:14:02 UTC 2026 ==
+== KV put base:33749132090 Thu Sep  3 11:59:28 UTC 2026 ==
 {"result":null,"errors":[],"messages":[],"success":true}
 --- verify get ---
-{"lat":42.6245,"lng":23.3521}
+{"lat":43.2677,"lng":6.6407}
