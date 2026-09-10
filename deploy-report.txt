@@ -1,4 +1,4 @@
-== Deploy report Thu Sep 10 02:44:58 UTC 2026 ==
+== Deploy report Thu Sep 10 02:45:37 UTC 2026 ==
 --- pubId подмяна още ли е в билда (очаква се 0) ---
 0
 0
@@ -7,17 +7,17 @@
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-09-10T02:44:59.210154Z",
+    "modified_on": "2026-09-10T02:45:37.792787Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "7e763f75ad734789b7465ea250c9f67a",
+    "deployment_id": "72a42c60a5fc415fa87d75bcb5a5ef7b",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
     "has_modules": true,
-    "etag": "0ef50979fcad2b29c13efc65474b436c896b88aaa37c3847de455b908a6696e3",
+    "etag": "dcffd38096f300d55b8414447b9ca48902f7255f2cbd25e97c10058e8c0e83b7",
     "handlers": [
       "fetch"
     ],
@@ -36,7 +36,7 @@
 {"service":"fish.taxi Worker","status":"ok","version":"2.9.1"}
 --- live /flights/SOF (само статусът, без списъка) ---
 HTTP 200
---- live /risk (дневно и часово число) ---
+--- live /risk (дневно, часово, следващ пик) ---
 {"ok":true,"coefficient":1.05,"score":5,"level":1,"label":"Обичайно","car_score":5,"harm_score":4,"harm_coefficient":1.04,"day_score":5,"day_harm_score":4,"hour_score":5,"hour_harm_score":4,"hour_factor":1,"hour_reason":null,"hour_label":null,"factors":{"rain":0.1,"snow":0,"cloud":10,"tmin":17.3,"tmax":31.1,"wind":10.7,"dow":4,"mon":9,"hour":5,"rush":false},"model":"KAT v3 · МВР 2015–2025","kat_url":"https://emillion-lab.github.io/KAT/","updated":1789007547606}
 --- live /gps (трябва да показва истинско driver_id) ---
 {"ok":true,"count":0,"online":0,"drivers":[]}
