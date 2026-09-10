@@ -26,6 +26,8 @@ jobs:
           python3 patch_dispatch.py
           # офлайн прозорец 2→6 мин — idempotent
           python3 patch_offline_window.py
+          # /risk: дневно число (както KAT) + отделно часово — idempotent
+          python3 patch_risk_hours.py
           # patch_legacy_id.py е махнат на 10.09.2026: patch_pubid_revert.py
           # премахна котвата му (`pub.driver_id = pubId(...)`), скриптът връщаше
           # exit 1 и убиваше целия deploy от 27.08. Без pubId подмяна legacy_id
@@ -87,6 +89,9 @@ jobs:
           echo "" >> $R
           echo "--- live /flights/SOF (само статусът, без списъка) ---" >> $R
           curl -s -o /dev/null -w "HTTP %{http_code}" "https://mvr-proxy.mihov-emil.workers.dev/flights/SOF" >> $R
+          echo "" >> $R
+          echo "--- live /risk (дневно и часово число) ---" >> $R
+          curl -s "https://mvr-proxy.mihov-emil.workers.dev/risk?nocache=$RANDOM" >> $R
           echo "" >> $R
           echo "--- live /gps (трябва да показва истинско driver_id) ---" >> $R
           curl -s "https://mvr-proxy.mihov-emil.workers.dev/gps" | head -c 500 >> $R
