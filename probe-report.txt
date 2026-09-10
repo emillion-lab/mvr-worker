@@ -1,3 +1,68 @@
-== Thu Sep 10 01:21:07 UTC 2026 GET ==
-{"error":"AERODATABOX_KEY secret is not set on mvr-proxy"}
-HTTP 500
+== Thu Sep 10 01:36:12 UTC 2026 GET ==
+{
+  "ok": true,
+  "raw_first": {
+    "movement": {
+      "airport": {
+        "icao": "LICA",
+        "iata": "SUF",
+        "name": "Lamezia Terme",
+        "countryCode": "it",
+        "timeZone": "Europe/Rome"
+      },
+      "scheduledTime": {
+        "utc": "2026-09-09 21:40Z",
+        "local": "2026-09-10 00:40+03:00"
+      },
+      "revisedTime": {
+        "utc": "2026-09-09 22:46Z",
+        "local": "2026-09-10 01:46+03:00"
+      },
+      "runwayTime": {
+        "utc": "2026-09-09 22:46Z",
+        "local": "2026-09-10 01:46+03:00"
+      },
+      "terminal": "2",
+      "runway": "09",
+      "quality": [
+        "Basic",
+        "Live"
+      ]
+    },
+    "number": "FR 6753",
+    "callSign": "RYR9XL",
+    "status": "Arrived",
+    "codeshareStatus": "IsOperator",
+    "isCargo": false,
+    "aircraft": {
+      "reg": "SP-RNO",
+      "modeS": "48E9F3",
+      "model": "Boeing 737-800"
+    },
+    "airline": {
+      "name": "Ryanair",
+      "iata": "FR",
+      "icao": "RYR"
+    }
+  },
+  "keys": [
+    "movement",
+    "number",
+    "callSign",
+    "status",
+    "codeshareStatus",
+    "isCargo",
+    "aircraft",
+    "airline"
+  ],
+  "movement_keys": [
+    "airport",
+    "scheduledTime",
+    "revisedTime",
+    "runwayTime",
+    "terminal",
+    "runway",
+    "quality"
+  ]
+}
+HTTP 200
