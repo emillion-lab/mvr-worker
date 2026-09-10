@@ -883,6 +883,27 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
         const sc = (m, cuts) => { let s=1; for (const c of cuts) if (m>=c) s++; return Math.min(10, s); };
         const score = sc(coef, CUTS), harmScore = sc(hCoef, HCUTS);
         const hourScore = sc(coef * hEff, CUTS), hourHarmScore = sc(hCoef * hEff, HCUTS);
+
+        /* FT-NEXTPEAK-V1: кой е следващият прозорец с повишен коефициент.
+           Три фиксирани прозореца, същите множители като hEff по-горе. */
+        const PEAKS = [
+          { from: 7,  to: 9,  f: 1.12, name: 'сутрешен пик' },
+          { from: 16, to: 19, f: 1.12, name: 'следобеден пик' },
+          { from: 22, to: 4,  f: 1.08, name: 'нощен прозорец' }
+        ];
+        const inWin = (h, w) => w.from <= w.to ? (h >= w.from && h <= w.to)
+                                               : (h >= w.from || h <= w.to);
+        const activeWin = PEAKS.find(w => inWin(hour, w));
+        const nextWin = activeWin || PEAKS
+          .map(w => ({ w, d: (w.from - hour + 24) % 24 }))
+          .sort((a, b) => a.d - b.d)[0].w;
+        const nextPeak = {
+          name: nextWin.name, from: nextWin.from, to: nextWin.to,
+          active: !!activeWin,
+          in_hours: activeWin ? 0 : (nextWin.from - hour + 24) % 24,
+          score: sc(coef * nextWin.f, CUTS),
+          harm_score: sc(hCoef * nextWin.f, HCUTS)
+        };
         const level = score <= 3 ? 0 : score <= 6 ? 1 : score <= 8 ? 2 : 3;
         const labels = ['Спокойна среда', 'Обичайно', 'Повишено внимание', 'Висок риск'];
         const result = JSON.stringify({
@@ -893,6 +914,7 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
           day_score: score, day_harm_score: harmScore,
           hour_score: hourScore, hour_harm_score: hourHarmScore,
           hour_factor: hEff, hour_reason: hourReason, hour_label: hourLabel,
+          next_peak: nextPeak,
           factors: { rain: Math.round(rain*10)/10, snow: Math.round(snow*10)/10,
                      cloud: sun==null?null:Math.round((1-sun)*100),
                      tmin, tmax, wind, dow, mon, hour, rush: hEff > 1.0 },
