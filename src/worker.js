@@ -869,29 +869,37 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
         else if (mon===12) xEff = dom===31?0.561 : dom>=27?0.85 : dom>=24?1.0
                                 : dom===23?1.35 : dom>=21?1.22 : dom>=19?1.18 : dom>=16?1.12 : 1.0;
 
-        // Пиковият час не е част от KAT — там данните са дневни и не могат да го
-        // проверят — но за шофьор е реален, затова се запазва.
+        /* FT-RISKHOURS-V1: дневното число се смята БЕЗ часовия коефициент,
+           за да съвпада точно с KAT сайта. Часът се прилага отделно. */
         const hEff = (hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 19) ? 1.12
                    : (hour >= 22 || hour <= 4) ? 1.08 : 1.0;
+        const hourReason = hEff === 1.12 ? 'peak' : hEff === 1.08 ? 'night' : null;
+        const hourLabel  = hourReason === 'peak' ? 'пиков час'
+                         : hourReason === 'night' ? 'нощен час' : null;
 
-        const common = iEff * wEff * aEff * xEff * hEff;
+        const common = iEff * wEff * aEff * xEff;
         const coef  = rEff * cEff * WD[dow]  * MO[mon-1]  * common;
         const hCoef = hR   * hC   * HWD[dow] * HMO[mon-1] * common;
         const sc = (m, cuts) => { let s=1; for (const c of cuts) if (m>=c) s++; return Math.min(10, s); };
         const score = sc(coef, CUTS), harmScore = sc(hCoef, HCUTS);
+        const hourScore = sc(coef * hEff, CUTS), hourHarmScore = sc(hCoef * hEff, HCUTS);
         const level = score <= 3 ? 0 : score <= 6 ? 1 : score <= 8 ? 2 : 3;
         const labels = ['Спокойна среда', 'Обичайно', 'Повишено внимание', 'Висок риск'];
         const result = JSON.stringify({
           ok: true, coefficient: Math.round(coef * 100) / 100, score, level, label: labels[level],
           car_score: score, harm_score: harmScore,
           harm_coefficient: Math.round(hCoef * 100) / 100,
+          /* Дневните — същите като на KAT сайта. Часовите — за шофьора. */
+          day_score: score, day_harm_score: harmScore,
+          hour_score: hourScore, hour_harm_score: hourHarmScore,
+          hour_factor: hEff, hour_reason: hourReason, hour_label: hourLabel,
           factors: { rain: Math.round(rain*10)/10, snow: Math.round(snow*10)/10,
                      cloud: sun==null?null:Math.round((1-sun)*100),
                      tmin, tmax, wind, dow, mon, hour, rush: hEff > 1.0 },
           model: 'KAT v3 · МВР 2015–2025',
           kat_url: 'https://emillion-lab.github.io/KAT/', updated: Date.now()
         });
-        try { await env.GPS_STORE.put('risk:current', result, { expirationTtl: 2400 }); } catch (e) {}
+        try { await env.GPS_STORE.put('risk:current', result, { expirationTtl: 900 }); } catch (e) {}
         return new Response(result, { headers: { ...CORS, 'Content-Type': 'application/json' } });
       } catch (e) {
         return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: CORS });
