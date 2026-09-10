@@ -1,4 +1,4 @@
-== Deploy report Thu Aug 27 13:11:43 UTC 2026 ==
+== Deploy report Thu Sep 10 01:58:04 UTC 2026 ==
 --- pubId подмяна още ли е в билда (очаква се 0) ---
 0
 0
@@ -7,17 +7,17 @@
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-08-27T13:11:43.618194Z",
+    "modified_on": "2026-09-10T01:58:04.351669Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "3cb4cc192daa4b5a82ee315f47d76412",
+    "deployment_id": "bb7bddb0415a4254b3540e8b249f6c77",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
     "has_modules": true,
-    "etag": "ac11e5744701c52b5c0d2e0a0407cecd5c10684f945f586194b40b4760307136",
+    "etag": "e63b5896a06ae13ad30f4e790728a9e76e2dc2026b91e48856abec47a021c658",
     "handlers": [
       "fetch"
     ],
@@ -34,5 +34,7 @@
 
 --- live /health ---
 {"service":"fish.taxi Worker","status":"ok","version":"2.9.1"}
+--- live /flights/SOF (само статусът, без списъка) ---
+HTTP 200
 --- live /gps (трябва да показва истинско driver_id) ---
-{"ok":true,"count":3,"online":1,"drivers":[{"driver_id":"1","lat":42.6245,"lng":23.3521,"online":false,"updated_at":1787833717168,"at_base":true,"approx":true},{"driver_id":"359878592888","lat":42.4910603,"lng":23.3941254,"online":true,"updated_at":1787836091254},{"driver_id":"359897644448","lat":42.67756,"lng":23.29152,"online":false,"updated_at":1787770078696,"approx":true,"at_base":false}]}
+{"ok":true,"count":0,"online":0,"drivers":[]}
