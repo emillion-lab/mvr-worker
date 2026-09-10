@@ -1,7 +1,9 @@
 name: Risk V2 Deploy
 on:
   workflow_dispatch:
-  schedule: [{ cron: '*/10 * * * *' }]
+  # schedule махнат на 10.09.2026: патчът е приложен на 10.08, оттогава
+  # cron-ът се пускаше на всеки 10 мин, виждаше RISK_V2 в кода и излизаше
+  # без да прави нищо. Само ядеше Actions минути.
 
 permissions:
   contents: write
