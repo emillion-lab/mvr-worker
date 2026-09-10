@@ -20,8 +20,10 @@ jobs:
           python3 patch_dispatch.py
           # офлайн прозорец 2→6 мин — idempotent
           python3 patch_offline_window.py
-          # legacy_id до псевдонима в /gps — idempotent
-          python3 patch_legacy_id.py
+          # patch_legacy_id.py е махнат на 10.09.2026: patch_pubid_revert.py
+          # премахна котвата му (`pub.driver_id = pubId(...)`), скриптът връщаше
+          # exit 1 и убиваше целия deploy от 27.08. Без pubId подмяна legacy_id
+          # е излишен — истинското id и без това стига до фронтенда.
           # revert на pubId подмяната — истинско id в /gps, както преди 26 авг
           python3 patch_pubid_revert.py
           node --check src/worker.js && echo "syntax OK"
@@ -76,6 +78,9 @@ jobs:
           echo "--- live /health ---" >> $R
           sleep 6
           curl -s https://mvr-proxy.mihov-emil.workers.dev/health >> $R
+          echo "" >> $R
+          echo "--- live /flights/SOF (само статусът, без списъка) ---" >> $R
+          curl -s -o /dev/null -w "HTTP %{http_code}" "https://mvr-proxy.mihov-emil.workers.dev/flights/SOF" >> $R
           echo "" >> $R
           echo "--- live /gps (трябва да показва истинско driver_id) ---" >> $R
           curl -s "https://mvr-proxy.mihov-emil.workers.dev/gps" | head -c 500 >> $R
