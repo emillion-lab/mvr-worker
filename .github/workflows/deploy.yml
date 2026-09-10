@@ -5,6 +5,12 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Два бързи push-а един след друг пускат два ръна, които се блъскат по main.
+# Без това вторият пада на git push и праща фалшив имейл за провал.
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -88,5 +94,11 @@ jobs:
           git config user.name "ci"; git config user.email "ci@fish.taxi"
           git add deploy-report.txt
           git commit -m "deploy report [skip ci]" || true
-          git fetch origin main && git rebase origin/main || true
-          git push
+          # rebase-with-retry, както в kv-tool.yml: иначе паралелен push печели
+          # и отчетът пада, а с него и целият рън.
+          for i in 1 2 3; do
+            git fetch origin main && git rebase origin/main || git rebase --abort
+            git push && exit 0
+            echo "push retry $i"; sleep $((i * 5))
+          done
+          echo "отчетът не можа да се качи, но деплоят мина"
