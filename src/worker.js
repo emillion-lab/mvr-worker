@@ -390,6 +390,7 @@ export default {
       try {
         const list = await env.GPS_STORE.list({ prefix: 'driver:' });
         const drivers = [];
+        const seen = new Set();
         const now = Date.now();
         for (const key of list.keys) {
           const raw = await env.GPS_STORE.get(key.name);
@@ -397,11 +398,23 @@ export default {
           const d = JSON.parse(raw);
           d.online = d.online && (now - d.updated_at) < OFFLINE_AFTER_MS;
           /* дори да не е натиснат СТОП — щом е офлайн, точката се маскира */
+          seen.add(String(d.driver_id));
           const pub = await maskIfOffline(env, d);
           /* FT-PUBID-REVERT-V1: истинско driver_id, както преди 26 авг.
              Псевдонимът е спрян до обновяване на фронтенда. */
           drivers.push(pub);
         }
+        /* FT-GPS-GHOST-V1: driver:{id} изтича (300 s / 24 ч след СТОП).
+           Без него шофьорът падаше в центъра. Всеки с token: се връща
+           офлайн на базата си, или на разпръснатата точка. */
+        try {
+          const toks = await env.GPS_STORE.list({ prefix: 'token:' });
+          for (const k of toks.keys) {
+            const did = k.name.slice('token:'.length);
+            if (!/^359\d{8,9}$/.test(did) || seen.has(did)) continue;
+            drivers.push(await maskIfOffline(env, { driver_id: did, online: false, updated_at: null }));
+          }
+        } catch (e) {}
         return new Response(JSON.stringify({ ok: true, count: drivers.length, online: drivers.filter(d => d.online).length, drivers }), { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
