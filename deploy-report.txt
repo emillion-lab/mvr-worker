@@ -1,4 +1,4 @@
-== Deploy report Wed Sep 23 07:40:32 UTC 2026 ==
+== Deploy report Wed Sep 23 07:41:39 UTC 2026 ==
 --- pubId подмяна още ли е в билда (очаква се 0) ---
 0
 0
@@ -7,17 +7,17 @@
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-09-23T07:40:32.940631Z",
+    "modified_on": "2026-09-23T07:41:39.443287Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "f26b717c35fa4f6ea5363102996e679d",
+    "deployment_id": "b383fbba87214a909fa6775dceeffe74",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
     "has_modules": true,
-    "etag": "dcffd38096f300d55b8414447b9ca48902f7255f2cbd25e97c10058e8c0e83b7",
+    "etag": "c5537be26e9f579135877a1c56ba605bbb203356a72e2c54be024e083249fa8a",
     "handlers": [
       "fetch"
     ],
@@ -39,4 +39,4 @@ HTTP 200
 --- live /risk (дневно, часово, следващ пик) ---
 {"ok":true,"coefficient":1.01,"score":4,"level":1,"label":"Обичайно","car_score":4,"harm_score":5,"harm_coefficient":1.06,"day_score":4,"day_harm_score":5,"hour_score":4,"hour_harm_score":5,"hour_factor":1,"hour_reason":null,"hour_label":null,"next_peak":{"name":"следобеден пик","from":16,"to":19,"active":false,"in_hours":6,"score":7,"harm_score":6},"factors":{"rain":0.1,"snow":0,"cloud":9,"tmin":8.6,"tmax":16.1,"wind":16.6,"dow":3,"mon":9,"hour":10,"rush":false},"model":"KAT v3 · МВР 2015–2025","kat_url":"https://emillion-lab.github.io/KAT/","updated":1790149241593}
 --- live /gps (трябва да показва истинско driver_id) ---
-{"ok":true,"count":0,"online":0,"drivers":[]}
+{"ok":true,"count":3,"online":0,"drivers":[{"driver_id":"359878592888","online":false,"updated_at":null,"lat":42.6245,"lng":23.3521,"approx":true,"at_base":true},{"driver_id":"359888588502","online":false,"updated_at":null,"lat":42.66779,"lng":23.2817,"approx":true,"at_base":true},{"driver_id":"359897644448","online":false,"updated_at":null,"lat":42.66611,"lng":23.35537,"approx":true,"at_base":true}]}
