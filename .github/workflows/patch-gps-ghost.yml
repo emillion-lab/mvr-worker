@@ -1,0 +1,57 @@
+name: Patch GPS Ghost
+# Шофьор с token: без жив driver: ключ → офлайн на базата си, не в центъра.
+# Комитът е с GITHUB_TOKEN и НЕ тригерва Deploy Worker → деплоят се вика изрично.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Приложи патча
+        run: python3 patch_gps_ghost.py src/worker.js
+
+      - name: Синтаксис
+        run: node --check src/worker.js && echo "SYNTAX OK"
+
+      - name: Провери резултата
+        run: |
+          grep -q "FT-GPS-GHOST-V1" src/worker.js || { echo "липсва маркерът"; exit 1; }
+          grep -q "seen.add(String(d.driver_id))" src/worker.js || { echo "липсва seen"; exit 1; }
+          echo "CLEAN"
+
+      - name: Commit
+        run: |
+          git config user.name  "ci"
+          git config user.email "ci@fish.taxi"
+          if git diff --quiet src/worker.js; then
+            echo "no change"
+          else
+            git add src/worker.js
+            git commit -m "gps: офлайн шофьор без driver: ключ остава на базата (FT-GPS-GHOST-V1)"
+            for i in 1 2 3; do
+              git fetch origin main && git rebase origin/main && git push && break
+              sleep 5
+            done
+          fi
+
+      - name: Trigger deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/deploy.yml/dispatches" \
+            -d '{"ref":"main"}'
+          echo "deploy dispatched"
