@@ -1,0 +1,7 @@
+== ETHBIBLE load Sun Oct  4 12:30:28 UTC 2026 ==
+tools: pdftotext version 24.02.0
+script parse_verses.py: http 200, 3984 bytes
+script load_d1.py: http 200, 2980 bytes
+pdf: http 403 text/html, 2334 bytes, magic <html
+pages: none
+job status: failure
