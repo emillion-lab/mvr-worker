@@ -3,6 +3,7 @@ name: ETHBIBLE Load D1
 # Живее тук, защото CLOUDFLARE_API_TOKEN е тайна на това репо (както Deploy SOMBRA).
 # Зарежда стиховете в D1 "ethbible". Текстът съществува само в runner-а:
 # не се комитва и не се печата (логът е публичен) — отчетът съдържа само бройки.
+# Всяка стъпка дописва в отчета, за да се вижда къде е спряло без достъп до логовете.
 
 on:
   push:
@@ -12,54 +13,63 @@ on:
 permissions:
   contents: write
 
+env:
+  R: ethbible-load-report.txt
+
 jobs:
   load:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Start report
+        run: echo "== ETHBIBLE load $(date -u) ==" > $R
+
       - name: Tools
-        run: sudo apt-get install -y -qq poppler-utils > /dev/null
+        run: |
+          sudo apt-get update -qq > /dev/null
+          sudo apt-get install -y -qq poppler-utils > /dev/null
+          echo "tools: $(pdftotext -v 2>&1 | head -1)" >> $R
 
       - name: Fetch ETHBIBLE scripts (през API, не raw CDN)
         run: |
           for f in parse_verses.py load_d1.py; do
-            curl -sfL -H "Accept: application/vnd.github.raw" \
-              "https://api.github.com/repos/emillion-lab/ETHBIBLE/contents/scripts/$f" -o /tmp/$f
+            code=$(curl -sL -w '%{http_code}' -H "Accept: application/vnd.github.raw" \
+              "https://api.github.com/repos/emillion-lab/ETHBIBLE/contents/scripts/$f" -o /tmp/$f)
+            echo "script $f: http $code, $(wc -c < /tmp/$f) bytes" >> $R
             python3 -m py_compile /tmp/$f
           done
-          grep -q "Psalm 151" /tmp/parse_verses.py || { echo "стар парсер"; exit 1; }
+          grep -q "Psalm 151" /tmp/parse_verses.py || { echo "стар парсер" >> $R; exit 1; }
 
       - name: Download PDF
         run: |
-          curl -sfL --retry 3 \
+          code=$(curl -sL --retry 3 -w '%{http_code} %{content_type}' \
             -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36" \
-            "https://cdn.rickmcelderry.com/EthiopianOrthodoxBible.pdf" -o /tmp/eob.pdf \
-            || { echo "PDF не се изтегли (bot защита?)"; exit 1; }
-          PAGES=$(pdfinfo /tmp/eob.pdf | awk '/^Pages:/{print $2}')
-          echo "pages: $PAGES"
-          [ "$PAGES" = "2151" ] || { echo "неочакван PDF"; exit 1; }
+            -H "Accept: application/pdf,*/*" \
+            "https://cdn.rickmcelderry.com/EthiopianOrthodoxBible.pdf" -o /tmp/eob.pdf)
+          echo "pdf: http $code, $(wc -c < /tmp/eob.pdf) bytes, magic $(head -c 5 /tmp/eob.pdf | tr -dc '[:print:]')" >> $R
+          PAGES=$(pdfinfo /tmp/eob.pdf 2>/dev/null | awk '/^Pages:/{print $2}')
+          echo "pages: ${PAGES:-none}" >> $R
+          [ "$PAGES" = "2151" ] || exit 1
 
       - name: Parse
         run: |
           pdftotext /tmp/eob.pdf /tmp/eob.txt
-          python3 /tmp/parse_verses.py /tmp/eob.txt /tmp/verses.jsonl | tee /tmp/parse.txt
+          python3 /tmp/parse_verses.py /tmp/eob.txt /tmp/verses.jsonl >> $R 2>&1
 
       - name: Load into D1
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACC: "74820d71c551391ce31d309c2fcb091c"
           D1_ID: "58e99aac-f819-4831-b370-10fd2307e68a"
-        run: python3 /tmp/load_d1.py /tmp/verses.jsonl | tee /tmp/load.txt
+        run: python3 /tmp/load_d1.py /tmp/verses.jsonl >> $R 2>&1
 
       - name: Commit report (само бройки)
         if: always()
         run: |
-          R=ethbible-load-report.txt
-          { echo "== ETHBIBLE load $(date -u) =="; cat /tmp/parse.txt /tmp/load.txt 2>/dev/null; } > $R
+          echo "job status: ${{ job.status }}" >> $R
           git config user.name "ci"
           git config user.email "ci@emillion-lab"
           git add $R
           git commit -m "ethbible load report [skip ci]" || true
-          git pull --rebase --autostash || true
-          git push || true
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break; sleep 5; done
