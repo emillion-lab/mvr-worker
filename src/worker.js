@@ -1311,7 +1311,10 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
       return new Response(body, { status: upstream.status, headers: { ...CORS, 'Content-Type': 'text/html; charset=utf-8' } });
     }
 
-    // ── Летищни пристигания (AeroDataBox през API.market, кеш 15 мин) ──
+    // ── Летищни пристигания (AeroDataBox през API.market) ── FT-FLIGHTS-SEQ-V1
+    // Прозорците се питат ЕДИН СЛЕД ДРУГ: от 30.09.2026 API.market не приема
+    // две паралелни заявки и от Promise.all оцеляваше само едната.
+    // Частичен отговор се допълва от последния пълен и не го презаписва.
     if (path.startsWith('/flights/') && request.method === 'GET') {
       try {
         const iata = (path.split('/')[2] || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
@@ -1319,7 +1322,8 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
         const debug = url.searchParams.get('debug') === '1';
         const fresh = url.searchParams.get('fresh') === '1';
         const ck = `flights:${iata}`;
-        const lastKey = `flights:last:${iata}`;
+        const lastKey = `flights:last:${iata}`;   // последно сервирано — за бюджетната спирачка
+        const fullKey = `flights:full:${iata}`;   // последно ПЪЛНО — само от него се кърпи
         const DAY_BUDGET = 180;          // единици/ден (6000/мес ≈ 200/ден, с резерв)
         const dayKey = 'adb:used:' + new Date(Date.now() + 3*3600000).toISOString().slice(0,10);
 
@@ -1328,8 +1332,6 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
           if (cached) return new Response(cached, { headers: CORS });
         }
 
-        // Бюджетна спирачка: при изчерпан дневен лимит сервираме последното
-        // известно състояние вместо да харчим единици.
         let usedToday = 0;
         try { usedToday = parseInt(await env.GPS_STORE.get(dayKey) || '0', 10); } catch (e) {}
         if (!fresh && usedToday >= DAY_BUDGET) {
@@ -1349,14 +1351,37 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
         const WINDOWS = [ { off: -180, dur: 720 }, { off: 540, dur: 720 } ];
         const base = `https://prod.api.market/api/v1/aedbx/aerodatabox/flights/airports/iata/${iata}`;
         const tail = `&direction=Arrival&withCancelled=true&withCodeshared=false&withLocation=false`;
-        const parts = await Promise.all(WINDOWS.map(w =>
-          fetch(`${base}?offsetMinutes=${w.off}&durationMinutes=${w.dur}${tail}`,
-                { headers: { 'accept': 'application/json', 'x-magicapi-key': API_KEY } })
-            .then(r => r.ok ? r.json() : null).catch(() => null)
-        ));
-        if (!parts.some(Boolean)) {
-          return new Response(JSON.stringify({ error: 'AeroDataBox: и двата прозореца се провалиха' }), { status: 502, headers: CORS });
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+        const startMs = Date.now();
+        const parts = [], windows = [];
+        for (let i = 0; i < WINDOWS.length; i++) {
+          const w = WINDOWS[i];
+          if (i > 0) await sleep(1500);
+          let st = null, body = null;
+          for (let attempt = 0; attempt < 2; attempt++) {
+            if (attempt > 0) await sleep(3000);
+            try {
+              const r = await fetch(`${base}?offsetMinutes=${w.off}&durationMinutes=${w.dur}${tail}`,
+                { headers: { 'accept': 'application/json', 'x-magicapi-key': API_KEY } });
+              st = r.status;
+              if (r.ok) {
+                body = await r.json().catch(() => null);
+                if (!body) st = r.status + ':empty';
+                break;                                   // 2xx: повторът няма да помогне
+              }
+              if (!(r.status === 429 || r.status >= 500)) break;   // 4xx: повторът няма да помогне
+            } catch (e) {
+              st = 'net:' + String(e && e.message || e).slice(0, 40);
+            }
+          }
+          parts.push(body);
+          windows.push({ off: w.off, status: st, n: body && body.arrivals ? body.arrivals.length : 0 });
         }
+        const okCount = parts.filter(Boolean).length;
+        if (!okCount) {
+          return new Response(JSON.stringify({ error: 'AeroDataBox: и двата прозореца се провалиха', windows }), { status: 502, headers: CORS });
+        }
+        const partial = okCount < WINDOWS.length;
         const seen = new Set(), merged = [];
         parts.filter(Boolean).forEach(p => (p.arrivals || []).forEach(f => {
           const mv = f.movement || {};
@@ -1364,18 +1389,12 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
           if (seen.has(key)) return;
           seen.add(key); merged.push(f);
         }));
-        merged.sort((a, b) => {
-          const ta = ((a.movement || {}).scheduledTime || {}).local || '';
-          const tb = ((b.movement || {}).scheduledTime || {}).local || '';
-          return ta < tb ? -1 : ta > tb ? 1 : 0;
-        });
-        const data = { arrivals: merged };
-        // debug=1 → връща суровия първи запис, за да видим къде е терминалът
+        // debug=1 → връща суровия първи запис и статусите на прозорците
         if (debug) {
-          const first = (data.arrivals || [])[0] || {};
-          return new Response(JSON.stringify({ ok: true, raw_first: first, keys: Object.keys(first), movement_keys: first.movement ? Object.keys(first.movement) : null }, null, 2), { headers: CORS });
+          const first = merged[0] || {};
+          return new Response(JSON.stringify({ ok: true, windows, raw_first: first, keys: Object.keys(first), movement_keys: first.movement ? Object.keys(first.movement) : null }, null, 2), { headers: CORS });
         }
-        const arrivals = (data.arrivals || []).map(f => {
+        const arrivals = merged.map(f => {
           const mv = f.movement || {};
           return {
             number: f.number,
@@ -1389,35 +1408,73 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
             status: f.status,
           };
         });
+        const tsOf = (s) => new Date(String(s || '').replace(' ', 'T')).getTime();
+
+        // Липсващ прозорец → неговите часове от последния ПЪЛЕН отговор.
+        // Маркират се stale: разписанието е вярно, статусът може да е стар.
+        let filled = 0;
+        if (partial) {
+          try {
+            const fullRaw = await env.GPS_STORE.get(fullKey);
+            if (fullRaw) {
+              const full = JSON.parse(fullRaw);
+              const have = new Set(arrivals.map(a => (a.number || '') + '|' + (a.scheduled || '')));
+              WINDOWS.forEach((w, i) => {
+                if (parts[i]) return;
+                const from = startMs + w.off * 60000, to = from + w.dur * 60000;
+                (full.arrivals || []).forEach(a => {
+                  const ts = tsOf(a.scheduled);
+                  if (!(ts >= from && ts < to)) return;
+                  const k = (a.number || '') + '|' + (a.scheduled || '');
+                  if (have.has(k)) return;
+                  have.add(k);
+                  arrivals.push(Object.assign({}, a, { stale: true }));
+                  filled++;
+                });
+              });
+            }
+          } catch (e) {}
+        }
+        arrivals.sort((a, b) => {
+          const ta = a.scheduled || '', tb = b.scheduled || '';
+          return ta < tb ? -1 : ta > tb ? 1 : 0;
+        });
+
         // Колко скоро има кацане → толкова често има смисъл да питаме
         const nowMs = Date.now();
         let nextIn = 1e9;
         arrivals.forEach(a => {
-          const s = a.revised || a.scheduled;
-          if (!s) return;
-          const ts = new Date(String(s).replace(' ', 'T')).getTime();
+          const ts = tsOf(a.revised || a.scheduled);
+          if (!isFinite(ts)) return;
           const d = ts - nowMs;
           if (d > -20*60000 && d < nextIn) nextIn = d;
         });
         const mins = nextIn / 60000;
-        // близко кацане → пресни закъснения; мъртви часове → пестим
-        const TTL = mins <= 45  ? 300     //  5 мин — полет каца скоро
+        // Частичен отговор живее кратко: следващата заявка може да го допълни.
+        // Иначе: близко кацане → пресни закъснения; мъртви часове → пестим.
+        const TTL = partial      ? 300
+                  : mins <= 45  ? 300     //  5 мин — полет каца скоро
                   : mins <= 120 ? 900     // 15 мин
                   : mins <= 240 ? 1800    // 30 мин
                   :               3600;   // 60 мин — нищо не идва
 
-        let usedNow = 0;
+        // Броим само успешните заявки — отказаните не се таксуват.
+        let usedNow = usedToday;
         try {
-          usedNow = parseInt(await env.GPS_STORE.get(dayKey) || '0', 10) + 2;
+          usedNow = usedToday + okCount;
           await env.GPS_STORE.put(dayKey, String(usedNow), { expirationTtl: 40 * 86400 });
         } catch (e) {}
 
         const out = JSON.stringify({ ok: true, airport: iata, count: arrivals.length,
                                      updated: nowMs, adbToday: usedNow, ttl: TTL,
-                                     nextInMin: Math.round(mins), arrivals });
+                                     nextInMin: Math.round(mins),
+                                     partial, filled, windows, arrivals });
         try { await env.GPS_STORE.put(ck, out, { expirationTtl: TTL }); } catch (e) {}
-        // дълготрайно резервно копие за бюджетната спирачка
         try { await env.GPS_STORE.put(lastKey, out, { expirationTtl: 86400 }); } catch (e) {}
+        // 36 ч: далечният прозорец стига до +21 ч, кърпката трябва да го покрие
+        if (!partial) {
+          try { await env.GPS_STORE.put(fullKey, out, { expirationTtl: 129600 }); } catch (e) {}
+        }
         return new Response(out, { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
