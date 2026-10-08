@@ -1,4 +1,4 @@
-== Deploy report Sun Oct  4 12:49:53 UTC 2026 ==
+== Deploy report Thu Oct  8 07:17:52 UTC 2026 ==
 --- pubId подмяна още ли е в билда (очаква се 0) ---
 0
 0
@@ -7,12 +7,12 @@
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-10-04T12:49:53.406112Z",
+    "modified_on": "2026-10-08T07:17:53.111988Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "8484484388e24388828ba6fdad25ced9",
+    "deployment_id": "6d3016b4c3d94ec385f94261f38feb4b",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
@@ -37,6 +37,6 @@
 --- live /flights/SOF (само статусът, без списъка) ---
 HTTP 200
 --- live /risk (дневно, часово, следващ пик) ---
-{"ok":true,"coefficient":0.82,"score":1,"level":0,"label":"Спокойна среда","car_score":1,"harm_score":4,"harm_coefficient":1.03,"day_score":1,"day_harm_score":4,"hour_score":1,"hour_harm_score":4,"hour_factor":1,"hour_reason":null,"hour_label":null,"next_peak":{"name":"следобеден пик","from":16,"to":19,"active":false,"in_hours":1,"score":2,"harm_score":6},"factors":{"rain":0,"snow":0,"cloud":5,"tmin":5,"tmax":21,"wind":11.5,"dow":0,"mon":10,"hour":15,"rush":false},"model":"KAT v3 · МВР 2015–2025","kat_url":"https://emillion-lab.github.io/KAT/","updated":1791118200531}
+{"ok":true,"coefficient":1.1,"score":6,"level":1,"label":"Обичайно","car_score":6,"harm_score":4,"harm_coefficient":0.98,"day_score":6,"day_harm_score":4,"hour_score":6,"hour_harm_score":4,"hour_factor":1,"hour_reason":null,"hour_label":null,"next_peak":{"name":"следобеден пик","from":16,"to":19,"active":false,"in_hours":6,"score":8,"harm_score":5},"factors":{"rain":0,"snow":0,"cloud":5,"tmin":4.5,"tmax":25.1,"wind":5.9,"dow":4,"mon":10,"hour":10,"rush":false},"model":"KAT v3 · МВР 2015–2025","kat_url":"https://emillion-lab.github.io/KAT/","updated":1791443197627}
 --- live /gps (трябва да показва истинско driver_id) ---
-{"ok":true,"count":3,"online":0,"drivers":[{"driver_id":"359878592888","online":false,"updated_at":null,"lat":42.6245,"lng":23.3521,"approx":true,"at_base":true},{"driver_id":"359888588502","online":false,"updated_at":null,"lat":42.66779,"lng":23.2817,"approx":true,"at_base":true},{"driver_id":"359897644448","online":false,"updated_at":null,"lat":42.66611,"lng":23.35537,"approx":true,"at_base":true}]}
+{"ok":true,"count":3,"online":1,"drivers":[{"driver_id":"359897644448","lat":42.6843843,"lng":23.287904,"online":true,"updated_at":1791443719713},{"driver_id":"359878592888","online":false,"updated_at":null,"lat":42.6245,"lng":23.3521,"approx":true,"at_base":true},{"driver_id":"359888588502","online":false,"updated_at":null,"lat":42.66779,"lng":23.2817,"approx":true,"at_base":true}]}
