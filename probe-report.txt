@@ -1,12 +1,1058 @@
-== Tue Oct 13 07:57:52 UTC 2026 GET ==
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html><head>
-<title>406 Not Acceptable</title>
-</head><body>
-<h1>Not Acceptable</h1>
-<p>An appropriate representation of the requested resource could not be found on this server.</p>
-<hr>
-<address>Apache/2.4.68 (Debian) Server at overpass-api.de Port 443</address>
-</body></html>
+== Tue Oct 13 07:59:08 UTC 2026 GET ==
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-06-01T08:52:28Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
 
-HTTP 406
+{
+  "type": "node",
+  "id": 852991369,
+  "lat": 42.6563014,
+  "lon": 23.3994018,
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "1",
+    "addr:postcode": "1592",
+    "addr:street": "Хайделберг",
+    "branch": "Дружба",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "check_date:opening_hours": "2026-03-27",
+    "contact:phone": "+359 2 401 3400",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG1100",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-druzhba-1100.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 1309442079,
+  "lat": 42.6293908,
+  "lon": 23.3731599,
+  "tags": {
+    "int_name": "Biznes park Sofia",
+    "name": "Бизнес парк София",
+    "name:en": "Business Park Sofia",
+    "network": "Градски транспорт София",
+    "network:wikidata": "Q124360139",
+    "operator": "Метрополитен",
+    "operator:wikidata": "Q112957870",
+    "public_transport": "station",
+    "railway": "station",
+    "ref": "16",
+    "start_date": "2015-05-08",
+    "station": "subway",
+    "subway": "yes",
+    "wikidata": "Q19701063",
+    "wikipedia": "bg:Метростанция „Бизнес парк София“"
+  }
+},
+{
+  "type": "node",
+  "id": 2186724183,
+  "lat": 42.6459651,
+  "lon": 23.3792558,
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "3",
+    "addr:postcode": "1712",
+    "addr:street": "Филип Аврамов",
+    "branch": "Младост",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "check_date:opening_hours": "2025-12-18",
+    "contact:phone": "+359 2 401 5400",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG1000",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-mladost-filip-avramov-1000.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 2643909765,
+  "lat": 42.6285675,
+  "lon": 23.3751920,
+  "tags": {
+    "bench": "yes",
+    "bin": "yes",
+    "bus": "yes",
+    "departures_board": "realtime",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "local_ref:metro": "H",
+    "name": "Бизнес парк София",
+    "name:en": "Business Park Sofia",
+    "network": "Градски транспорт София",
+    "network:wikidata": "Q124360139",
+    "public_transport": "platform",
+    "ref": "2390",
+    "shelter": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 2643909766,
+  "lat": 42.6287462,
+  "lon": 23.3750591,
+  "tags": {
+    "bench": "no",
+    "bin": "yes",
+    "bus": "yes",
+    "departures_board": "realtime",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "local_ref:metro": "G",
+    "name": "Бизнес парк София",
+    "name:en": "Business Park Sofia",
+    "network": "Градски транспорт София",
+    "network:wikidata": "Q124360139",
+    "public_transport": "platform",
+    "ref": "2391",
+    "shelter": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 2656976741,
+  "lat": 42.6242627,
+  "lon": 23.3711512,
+  "tags": {
+    "bus": "yes",
+    "departures_board": "realtime",
+    "highway": "bus_stop",
+    "int_name": "Biznes park Sofia",
+    "name": "Бизнес парк София",
+    "name:en": "Business Park Sofia",
+    "network": "Градски транспорт София",
+    "network:wikidata": "Q124360139",
+    "public_transport": "platform",
+    "ref": "2625",
+    "shelter": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 2919523796,
+  "lat": 42.6925589,
+  "lon": 23.3234274,
+  "tags": {
+    "branch": "City",
+    "brand": "Decathlon",
+    "brand:wikidata": "Q509349",
+    "check_date": "2025-03-25",
+    "email": "contactbg@decathlon.com",
+    "name": "Decathlon",
+    "name:bg": "Декатлон",
+    "name:en": "Decathlon",
+    "opening_hours": "Mo-Su 10:00-21:00",
+    "phone": "+359 2 906 2110",
+    "shop": "sports",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 3766181129,
+  "lat": 42.6417802,
+  "lon": 23.3362140,
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "20",
+    "addr:postcode": "1000",
+    "addr:street": "Проф. д-р Иван Странски",
+    "branch": "Малинова долина",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "check_date": "2025-11-20",
+    "check_date:opening_hours": "2025-11-20",
+    "contact:phone": "+359 2 904 8800",
+    "internet_access": "no",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "payment:contactless": "yes",
+    "payment:credit_cards": "yes",
+    "ref": "BG5800",
+    "shop": "supermarket",
+    "toilets:wheelchair": "yes",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-malinova-dolina-5800.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 9980312982,
+  "lat": 42.6239901,
+  "lon": 23.3840787,
+  "tags": {
+    "access": "permissive",
+    "amenity": "charging_station",
+    "authentication:none": "yes",
+    "bicycle": "no",
+    "brand": "Kaufland",
+    "bus": "no",
+    "fee": "no",
+    "hgv": "no",
+    "motorcar": "yes",
+    "operator": "Екарс БГ ЕООД",
+    "operator:source": "https://zanas.kaufland.bg/otgovornost/deistviyata-nosyat-promyanata/elektromobilnost-kaufland.html#lokatsii",
+    "payment:app": "yes",
+    "scooter": "no",
+    "socket:chademo": "1",
+    "socket:chademo:output": "50kW",
+    "socket:type2": "1",
+    "socket:type2:output": "43kW",
+    "socket:type2_combo": "1",
+    "socket:type2_combo:output": "50kW"
+  }
+},
+{
+  "type": "node",
+  "id": 10035527922,
+  "lat": 42.6344562,
+  "lon": 23.4071349,
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "2",
+    "addr:postcode": "1000",
+    "addr:street": "Владичина ливада",
+    "branch": "Горубляне",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG6300",
+    "shop": "supermarket",
+    "start_date": "2022-09-29",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-gorublyane-6300.html"
+  }
+},
+{
+  "type": "node",
+  "id": 11584409484,
+  "lat": 42.6287956,
+  "lon": 23.3731247,
+  "tags": {
+    "int_name": "Biznes park Sofia",
+    "name": "Бизнес парк София",
+    "name:en": "Business park Sofia",
+    "network": "Градски транспорт София",
+    "network:wikidata": "Q124360139",
+    "public_transport": "stop_position",
+    "railway": "stop",
+    "ref": "M16",
+    "subway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 11584409486,
+  "lat": 42.6296039,
+  "lon": 23.3731289,
+  "tags": {
+    "int_name": "Biznes park Sofia",
+    "name": "Бизнес парк София",
+    "name:en": "Business park Sofia",
+    "network": "Градски транспорт София",
+    "network:wikidata": "Q124360139",
+    "public_transport": "stop_position",
+    "railway": "stop",
+    "ref": "M16",
+    "subway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 13103862287,
+  "lat": 42.6897850,
+  "lon": 23.2787768,
+  "tags": {
+    "brand": "Decathlon",
+    "brand:wikidata": "Q509349",
+    "check_date": "2026-02-21",
+    "level": "0",
+    "name": "Decathlon",
+    "name:bg": "Декатлон",
+    "name:en": "Decathlon",
+    "shop": "sports"
+  }
+},
+{
+  "type": "node",
+  "id": 13155765602,
+  "lat": 42.6677562,
+  "lon": 23.3649308,
+  "tags": {
+    "branch": "Изгрев",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "check_date": "2025-10-21",
+    "level": "0",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "opening_date": "2024-12-18",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG8400",
+    "self_checkout": "yes",
+    "shop": "supermarket"
+  }
+},
+{
+  "type": "node",
+  "id": 13370554738,
+  "lat": 42.6988326,
+  "lon": 23.3478312,
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "2",
+    "addr:postcode": "1504",
+    "addr:street": "Проф. Милко Бичев",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG1030",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-teatralna-1030.html"
+  }
+},
+{
+  "type": "node",
+  "id": 13460106382,
+  "lat": 42.6462317,
+  "lon": 23.3423107,
+  "tags": {
+    "brand": "Decathlon",
+    "brand:wikidata": "Q509349",
+    "check_date": "2026-04-03",
+    "check_date:opening_hours": "2026-04-03",
+    "name": "Decathlon",
+    "name:bg": "Декатлон",
+    "name:en": "Decathlon",
+    "opening_hours": "Mo-Su 09:30-21:00",
+    "shop": "sports"
+  }
+},
+{
+  "type": "node",
+  "id": 13622979589,
+  "lat": 42.7319979,
+  "lon": 23.3151742,
+  "tags": {
+    "access": "customers",
+    "amenity": "charging_station",
+    "brand": "Kaufland",
+    "charge": "0.35 EUR/kWh",
+    "description": "Dual 60kW CCS2 + cableless 22kW Type 2 connector.",
+    "fee": "0.35 EUR/kWh",
+    "manufacturer": "ABB",
+    "name": "Kaufland Voenna Rampa",
+    "network": "VsichkoTok",
+    "operator": "VsichkoTok",
+    "operator:wikidata": "Q138585960",
+    "payment:membership_card": "yes",
+    "payment:website": "https://vsichkotok.bg/2/178"
+  }
+},
+{
+  "type": "way",
+  "id": 48337730,
+  "center": {
+    "lat": 42.6999866,
+    "lon": 23.3217957
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "25",
+    "addr:street": "бул. Княгиня Мария Луиза",
+    "alt_name": "Centralni Hali",
+    "alt_name:bg": "Централни софийски хали",
+    "alt_name:de": "Zentralmarkthalle",
+    "alt_name:en": "Central Market Hall",
+    "alt_name:es": "Mercado central",
+    "alt_name:fr": "Marché central",
+    "branch": "София-Център",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "marketplace",
+    "building:wikidata": "Q190675",
+    "building:wikimedia_commons": "Category:Central Market Hall in Sofia",
+    "building:wikipedia": "bg:Централни софийски хали",
+    "check_date": "2025-12-17",
+    "diet:halal": "yes",
+    "image": "https://photos.app.goo.gl/akB4ssQVV3i3g4Qr7",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "opening_date": "2024-05-23",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG6400",
+    "self_checkout": "yes",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-center-6400.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 88690590,
+  "center": {
+    "lat": 42.7294412,
+    "lon": 23.2672179
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:street": "бул. Панчо Владигеров",
+    "brand": "Praktiker",
+    "brand:wikidata": "Q110399491",
+    "building": "yes",
+    "contact:email": "eshop@eshop.praktiker.bg",
+    "contact:facebook": "https://www.facebook.com/PraktikerBG",
+    "contact:instagram": "https://www.instagram.com/praktikerbg",
+    "contact:linkedin": "https://www.linkedin.com/company/praktikerbg",
+    "contact:phone": "+359 2 810 7120",
+    "contact:website": "https://praktiker.bg/bg",
+    "name": "Praktiker",
+    "name:bg": "Практикер",
+    "name:en": "Praktiker",
+    "opening_hours": "Mo-Sa 08:00-21:00; Su 08:30-20:00",
+    "operator": "Практикер Ритейл ЕООД",
+    "shop": "doityourself",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 146542080,
+  "center": {
+    "lat": 42.7279447,
+    "lon": 23.2858741
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "61",
+    "addr:postcode": "1229",
+    "addr:street": "Хан Кубрат",
+    "branch": "Надежда",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "yes",
+    "check_date": "2025-08-17",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG3000",
+    "self_checkout": "yes",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-nadezhda-3000.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 147119718,
+  "center": {
+    "lat": 42.7109575,
+    "lon": 23.3027922
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:postcode": "1233",
+    "branch": "Банишора",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "retail",
+    "layer": "1",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG2800",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-banishora-2800.html"
+  }
+},
+{
+  "type": "way",
+  "id": 166213061,
+  "center": {
+    "lat": 42.6703876,
+    "lon": 23.2734768
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "3",
+    "addr:postcode": "1618",
+    "addr:street": "Тодор Каблешков",
+    "branch": "Витоша",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "yes",
+    "check_date": "2025-06-30",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG6000",
+    "self_checkout": "yes",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-vitosha-6000.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 166924427,
+  "center": {
+    "lat": 42.7099257,
+    "lon": 23.3701740
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "31",
+    "addr:postcode": "1517",
+    "addr:street": "бул. Владимир Вазов",
+    "branch": "Подуяне",
+    "brand": "Decathlon",
+    "brand:wikidata": "Q509349",
+    "building": "retail",
+    "building:levels": "1",
+    "check_date": "2023-06-18",
+    "int_name": "Decathlon",
+    "internet_access": "wlan",
+    "internet_access:fee": "customers",
+    "name": "Decathlon",
+    "name:bg": "Декатлон",
+    "name:en": "Decathlon",
+    "opening_hours": "10:00-21:00",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "phone": "+359 2 904 6741",
+    "roof:shape": "flat",
+    "shop": "sports",
+    "smoking": "no",
+    "sport": "tennis;soccer;fitness;table_tennis;athletics;climbing;basketball;running;volleyball;swimming",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 178660975,
+  "center": {
+    "lat": 42.7101807,
+    "lon": 23.2580915
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "56",
+    "addr:postcode": "1324",
+    "addr:street": "бул. Д-р Петър Дертлиев",
+    "air_conditioning": "yes",
+    "branch": "Петър Дертлиев",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "retail",
+    "building:levels": "1",
+    "bulk_purchase": "yes",
+    "check_date": "2026-03-05",
+    "check_date:diet:excipient_free": "2026-03-05",
+    "check_date:diet:keto": "2026-03-05",
+    "currency:EUR": "yes",
+    "diet:alcohol_free": "yes",
+    "diet:carnivore": "yes",
+    "diet:excipient_free": "yes",
+    "diet:gluten_free": "yes",
+    "diet:keto": "yes",
+    "diet:lactose_free": "yes",
+    "diet:meat": "yes",
+    "diet:non-vegetarian": "yes",
+    "diet:sugar_free": "yes",
+    "diet:vegan": "yes",
+    "diet:vegetarian": "yes",
+    "dog": "outside",
+    "height": "12",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "note": "Височината не е сигурна.",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "organic": "yes",
+    "payment:credit_cards": "yes",
+    "ref": "BG3700",
+    "roof:levels": "0",
+    "shop": "supermarket",
+    "smoking": "outside",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-lyulin-petar-dertliev-3700.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 220575564,
+  "center": {
+    "lat": 42.6259242,
+    "lon": 23.3766057
+  },
+  "tags": {
+    "addr:housenumber": "10",
+    "addr:place": "Бизнес Парк София",
+    "building": "office",
+    "building:levels": "5"
+  }
+},
+{
+  "type": "way",
+  "id": 225064115,
+  "center": {
+    "lat": 42.6745018,
+    "lon": 23.3831495
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:postcode": "1574",
+    "branch": "Слатина",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "retail",
+    "building:levels": "2",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "nohousenumber": "yes",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG5900",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-slatina-5900.html"
+  }
+},
+{
+  "type": "way",
+  "id": 245791985,
+  "center": {
+    "lat": 42.7137897,
+    "lon": 23.3536226
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "7Б",
+    "addr:postcode": "1510",
+    "addr:street": "Резбарска",
+    "branch": "Хаджи Димитър",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "yes",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "ref": "BG5600",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-hadzhi-dimitar-5600.html"
+  }
+},
+{
+  "type": "way",
+  "id": 256251598,
+  "center": {
+    "lat": 42.6269176,
+    "lon": 23.3762220
+  },
+  "tags": {
+    "fence_type": "chain_link",
+    "landuse": "commercial",
+    "name": "Бизнес Парк София",
+    "wikidata": "Q5001778",
+    "wikipedia": "bg:Бизнес парк София"
+  }
+},
+{
+  "type": "way",
+  "id": 257532110,
+  "center": {
+    "lat": 42.6225742,
+    "lon": 23.3666316
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "4",
+    "addr:postcode": "1166",
+    "addr:street": "Олимпийска",
+    "branch": "Витоша",
+    "brand": "Decathlon",
+    "brand:wikidata": "Q509349",
+    "building": "retail",
+    "check_date": "2022-10-21",
+    "int_name": "Decathlon",
+    "layer": "1",
+    "name": "Decathlon",
+    "name:bg": "Декатлон",
+    "name:en": "Decathlon",
+    "opening_hours": "10:00-21:00",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "phone": "+359 2 902 1010",
+    "shop": "sports",
+    "sport": "tennis;soccer;fitness;multi;table_tennis;climbing;athletics;swimming;basketball;skateboard;volleyball;cycling",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 293882184,
+  "center": {
+    "lat": 42.6831178,
+    "lon": 23.2672115
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "3",
+    "addr:postcode": "1618",
+    "addr:street": "Кукуряк",
+    "branch": "Овча купел",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "retail",
+    "building:levels": "1",
+    "contact:phone": "+359 2 403 2900",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG2900",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-ovcha-kupel-2900.html"
+  }
+},
+{
+  "type": "way",
+  "id": 345564737,
+  "center": {
+    "lat": 42.6273464,
+    "lon": 23.3715319
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "10",
+    "addr:postcode": "1517",
+    "addr:street": "Арх. Богдан Томалевски",
+    "building": "yes",
+    "building:levels": "3",
+    "source": "Bing"
+  }
+},
+{
+  "type": "way",
+  "id": 443185153,
+  "center": {
+    "lat": 42.6901246,
+    "lon": 23.3018580
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "36",
+    "addr:postcode": "1606",
+    "addr:street": "бул. Ген. Тотлебен",
+    "branch": "Крива река",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "retail",
+    "check_date": "2026-03-12",
+    "contact:phone": "+359 2 905 1200",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG7800",
+    "self_checkout": "yes",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-kriva-reka-7800.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1052494001,
+  "center": {
+    "lat": 42.6242240,
+    "lon": 23.3837201
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "271",
+    "addr:street": "Околовръстен път",
+    "branch": "Младост 4",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "yes",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "opening_date": "2022-06-23",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG8800",
+    "shop": "supermarket",
+    "start_date": "2022-06-23",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-mladost-okolovrasten-pat-8800.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1199513638,
+  "center": {
+    "lat": 42.6553070,
+    "lon": 23.2873638
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "61",
+    "addr:postcode": "1404",
+    "addr:street": "Васил Стефанов",
+    "branch": "Манастирски ливади - изток",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "retail",
+    "building:levels": "2",
+    "building:material": "concrete",
+    "building:material:concrete": "panels",
+    "check_date": "2025-10-31",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "layer": "0",
+    "level": "0",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "opening_date": "2023-11-02",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "operator": "Кауфланд България ЕООД енд Ко. КД",
+    "payment:cash": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "phone": "+359 800 122 20",
+    "ref": "BG6500",
+    "roof:shape": "flat",
+    "self_checkout": "yes",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-manastirski-livadi-6500.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1201109017,
+  "center": {
+    "lat": 42.7253755,
+    "lon": 23.2415652
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "97",
+    "addr:postcode": "1343",
+    "addr:street": "бул. Царица Йоанна",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "retail",
+    "building:levels": "1",
+    "check_date": "2025-08-09",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "opening_date": "2023-10-12",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG1040",
+    "roof:levels": "0",
+    "roof:shape": "flat",
+    "self_checkout": "yes",
+    "shop": "supermarket",
+    "website": "https://www.kaufland.bg/moyat-kaufland/uslugi/filiali/sofia-lyulin-tsaritsa-yoanna-1040.html"
+  }
+},
+{
+  "type": "way",
+  "id": 1283566524,
+  "center": {
+    "lat": 42.6880969,
+    "lon": 23.2779295
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "149Б",
+    "addr:street": "бул. Никола Мушанов",
+    "brand": "Praktiker",
+    "brand:wikidata": "Q110399491",
+    "building": "yes",
+    "check_date": "2025-08-29",
+    "contact:email": "eshop@eshop.praktiker.bg",
+    "contact:facebook": "https://www.facebook.com/PraktikerBG",
+    "contact:instagram": "https://www.instagram.com/praktikerbg",
+    "contact:linkedin": "https://www.linkedin.com/company/praktikerbg",
+    "contact:phone": "+359 2 454 2000",
+    "contact:website": "https://praktiker.bg/bg",
+    "name": "Praktiker",
+    "name:bg": "Практикер",
+    "name:en": "Praktiker",
+    "opening_date": "2024-04-11",
+    "opening_hours": "Mo-Sa 08:00-21:00; Su 08:30-20:00",
+    "operator": "Практикер Ритейл ЕООД",
+    "shop": "doityourself",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1341612145,
+  "center": {
+    "lat": 42.6408553,
+    "lon": 23.4098721
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "323",
+    "addr:postcode": "1582",
+    "addr:street": "бул. Цариградско шосе",
+    "brand": "Praktiker",
+    "brand:wikidata": "Q110399491",
+    "building": "yes",
+    "contact:email": "eshop@eshop.praktiker.bg",
+    "contact:facebook": "https://www.facebook.com/PraktikerBG",
+    "contact:instagram": "https://www.instagram.com/praktikerbg",
+    "contact:linkedin": "https://www.linkedin.com/company/praktikerbg",
+    "contact:phone": "+359 2 817 0120",
+    "contact:website": "https://praktiker.bg/bg",
+    "name": "Praktiker",
+    "name:bg": "Практикер",
+    "name:en": "Praktiker",
+    "opening_hours": "Mo-Sa 08:00-21:00; Su 08:30-20:00",
+    "operator": "Практикер Ритейл ЕООД",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "shop": "doityourself"
+  }
+},
+{
+  "type": "way",
+  "id": 1348382457,
+  "center": {
+    "lat": 42.7095590,
+    "lon": 23.4552675
+  },
+  "tags": {
+    "addr:city": "София",
+    "addr:housenumber": "515",
+    "addr:street": "бул. Ботевградско шосе",
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "retail",
+    "check_date": "2025-08-05",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "opening_hours": "Mo-Su 08:00-21:00",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "shop": "supermarket",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1421682040,
+  "center": {
+    "lat": 42.7317242,
+    "lon": 23.3159992
+  },
+  "tags": {
+    "brand": "Kaufland",
+    "brand:wikidata": "Q685967",
+    "building": "retail",
+    "name": "Kaufland",
+    "name:bg": "Кауфланд",
+    "name:en": "Kaufland",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "ref": "BG1010",
+    "shop": "supermarket"
+  }
+},
+{
+  "type": "relation",
+  "id": 406492,
+  "center": {
+    "lat": 42.6779362,
+    "lon": 23.3162088
+  },
+  "tags": {
+    "colour": "#FF0000",
+    "from": "Бизнес парк София",
+    "name": "Метролиния M1 Бизнес парк София => Сливница",
+    "network": "Градски транспорт София",
+    "network:wikidata": "Q124360139",
+    "operator": "Метрополитен",
+    "operator:wikidata": "Q112957870",
+    "public_transport:version": "2",
+    "ref": "M1",
+    "route": "subway",
+    "to": "Сливница",
+    "type": "route",
+    "wikidata": "Q20020737"
+  }
+},
+{
+  "type": "relation",
+  "id": 7623402,
+  "center": {
+    "lat": 42.6293046,
+    "lon": 23.3731324
+  },
+  "tags": {
+    "int_name": "Biznes Park Sofia",
+    "name": "Бизнес Парк София",
+    "name:en": "Business Park Sofia",
+    "public_transport": "stop_area",
+    "type": "public_transport"
+  }
+},
+{
+  "type": "relation",
+  "id": 7734090,
+  "center": {
+    "lat": 42.6774610,
+    "lon": 23.3161462
+  },
+  "tags": {
+    "colour": "#FF0000",
+    "from": "Сливница",
+    "name": "Метролиния M1 Сливница => Бизнес парк София",
+    "network": "Градски транспорт София",
+    "network:wikidata": "Q124360139",
+    "operator": "Метрополитен",
+    "operator:wikidata": "Q112957870",
+    "public_transport:version": "2",
+    "ref": "M1",
+    "route": "subway",
+    "to": "Бизнес парк София",
+    "type": "route",
+    "wikidata": "Q20020737"
+  }
+}
+
+  ]
+}
+
+HTTP 200
