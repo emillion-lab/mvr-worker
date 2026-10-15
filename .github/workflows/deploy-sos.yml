@@ -33,14 +33,15 @@ jobs:
           echo "== SOS deploy $(date -u) ==" > $R
           cd /tmp/sos/worker
           set -o pipefail
-          npx --yes wrangler@3 deploy 2>&1 | grep -v -i token | tail -n 40 | tee -a $R
+          npx --yes wrangler@3 deploy 2>&1 | grep -v -i token | grep -E "Upload|Deployed|bindings|HUB|GPS_STORE|Version|ERROR|error" | tee -a $R
           echo "" >> $R
           sleep 8
-          echo "--- GET /health ---" >> $R
-          curl -s https://sos.mihov-emil.workers.dev/health >> $R
-          echo "" >> $R
-          echo "--- GET /admin/list без токен (очаква 401) ---" >> $R
-          curl -s -o /dev/null -w "%{http_code}\n" https://sos.mihov-emil.workers.dev/admin/list >> $R
+          U=https://sos.mihov-emil.workers.dev
+          probe() { echo "--- $1 $2 ---" >> $R; shift; curl -s -m 20 -w "\n[HTTP %{http_code}]\n" "$@" | head -c 600 >> $R; echo "" >> $R; }
+          probe GET /health "$U/health"
+          probe GET "/admin/list без токен (очаква 401)" "$U/admin/list"
+          probe POST "/login с грешна парола (очаква 401)" -X POST -H 'content-type: application/json' -d '{"plate":"CA0000XX","password":"x"}' "$U/login"
+          probe GET "/ws без upgrade (очаква 426)" "$U/ws?token=x"
 
       - name: Commit report
         if: always()
