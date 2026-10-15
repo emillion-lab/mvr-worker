@@ -1,0 +1,53 @@
+name: Deploy SOS
+
+# Живее тук, защото CLOUDFLARE_API_TOKEN е тайна на това репо (както deploy-sombra).
+# Не пипа mvr-proxy — качва само Worker-а "sos" с код от репото SOS.
+# Wrangler, не суров API: Durable Object миграцията и workers.dev адресът искат го.
+# Админ токенът е общ с fish.taxi (KV admin:token в GPS_STORE) — нищо ново за слагане.
+
+on:
+  push:
+    paths: ['.github/workflows/deploy-sos.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch SOS source (git, не CDN — без кеширана стара версия)
+        run: |
+          git clone --depth 1 https://github.com/emillion-lab/SOS.git /tmp/sos
+          node --check /tmp/sos/worker/src/worker.js
+          grep -q "adminToken()" /tmp/sos/worker/src/worker.js || { echo "стар код — спирам"; exit 1; }
+
+      - name: Deploy with wrangler
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          R="$GITHUB_WORKSPACE/sos-deploy-report.txt"
+          echo "== SOS deploy $(date -u) ==" > $R
+          cd /tmp/sos/worker
+          set -o pipefail
+          npx --yes wrangler@3 deploy 2>&1 | grep -v -i token | tail -n 40 | tee -a $R
+          echo "" >> $R
+          sleep 8
+          echo "--- GET /health ---" >> $R
+          curl -s https://sos.mihov-emil.workers.dev/health >> $R
+          echo "" >> $R
+          echo "--- GET /admin/list без токен (очаква 401) ---" >> $R
+          curl -s -o /dev/null -w "%{http_code}\n" https://sos.mihov-emil.workers.dev/admin/list >> $R
+
+      - name: Commit report
+        if: always()
+        run: |
+          git config user.name "ci"
+          git config user.email "ci@emillion-lab"
+          git add sos-deploy-report.txt
+          git commit -m "sos deploy report [skip ci]" || true
+          git pull --rebase --autostash || true
+          git push || true
