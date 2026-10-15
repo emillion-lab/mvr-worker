@@ -1,4 +1,4 @@
-== Deploy report Thu Oct  8 07:18:56 UTC 2026 ==
+== Deploy report Thu Oct 15 18:37:57 UTC 2026 ==
 --- pubId подмяна още ли е в билда (очаква се 0) ---
 0
 0
@@ -7,17 +7,17 @@
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-10-08T07:18:57.001437Z",
+    "modified_on": "2026-10-15T18:37:58.511164Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "0ce1b1d58f6c4a539b0629f27ffc0198",
+    "deployment_id": "086c5d6cc6cc4b6a8f964a1915b813e1",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
     "has_modules": true,
-    "etag": "bcabaf04cfbd79290e45e393df634f25fddf7f95a07d9854ee49889e259353ea",
+    "etag": "bbfc3dae8de2e8713c4035ad9dbaaa9a268fc7b26c29e7107984a98ac39e0db1",
     "handlers": [
       "fetch"
     ],
@@ -37,6 +37,6 @@
 --- live /flights/SOF (само статусът, без списъка) ---
 HTTP 200
 --- live /risk (дневно, часово, следващ пик) ---
-{"ok":true,"coefficient":1.1,"score":6,"level":1,"label":"Обичайно","car_score":6,"harm_score":4,"harm_coefficient":0.98,"day_score":6,"day_harm_score":4,"hour_score":6,"hour_harm_score":4,"hour_factor":1,"hour_reason":null,"hour_label":null,"next_peak":{"name":"следобеден пик","from":16,"to":19,"active":false,"in_hours":6,"score":8,"harm_score":5},"factors":{"rain":0,"snow":0,"cloud":5,"tmin":4.5,"tmax":25.1,"wind":5.9,"dow":4,"mon":10,"hour":10,"rush":false},"model":"KAT v3 · МВР 2015–2025","kat_url":"https://emillion-lab.github.io/KAT/","updated":1791443197627}
+{"ok":true,"coefficient":1.11,"score":6,"level":1,"label":"Обичайно","car_score":6,"harm_score":3,"harm_coefficient":0.9,"day_score":6,"day_harm_score":3,"hour_score":6,"hour_harm_score":3,"hour_factor":1,"hour_reason":null,"hour_label":null,"next_peak":{"name":"нощен прозорец","from":22,"to":4,"active":false,"in_hours":1,"score":8,"harm_score":3},"factors":{"rain":0,"snow":0,"cloud":49,"tmin":3.2,"tmax":12.6,"wind":16.3,"dow":4,"mon":10,"hour":21,"rush":false},"model":"KAT v3 · МВР 2015–2025","kat_url":"https://emillion-lab.github.io/KAT/","updated":1792089580293}
 --- live /gps (трябва да показва истинско driver_id) ---
-{"ok":true,"count":3,"online":1,"drivers":[{"driver_id":"359897644448","lat":42.6843843,"lng":23.287904,"online":true,"updated_at":1791443719713},{"driver_id":"359878592888","online":false,"updated_at":null,"lat":42.6245,"lng":23.3521,"approx":true,"at_base":true},{"driver_id":"359888588502","online":false,"updated_at":null,"lat":42.66779,"lng":23.2817,"approx":true,"at_base":true}]}
+{"ok":true,"count":3,"online":0,"drivers":[{"driver_id":"359878592888","online":false,"updated_at":null,"lat":42.6245,"lng":23.3521,"approx":true,"at_base":true},{"driver_id":"359888588502","online":false,"updated_at":null,"lat":42.66779,"lng":23.2817,"approx":true,"at_base":true},{"driver_id":"359897644448","online":false,"updated_at":null,"lat":42.66611,"lng":23.35537,"approx":true,"at_base":true}]}
