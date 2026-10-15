@@ -1,4 +1,4 @@
-== Deploy report Thu Oct 15 18:37:57 UTC 2026 ==
+== Deploy report Thu Oct 15 18:42:53 UTC 2026 ==
 --- pubId подмяна още ли е в билда (очаква се 0) ---
 0
 0
@@ -7,12 +7,12 @@
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-10-15T18:37:58.511164Z",
+    "modified_on": "2026-10-15T18:42:53.301117Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "086c5d6cc6cc4b6a8f964a1915b813e1",
+    "deployment_id": "08d3437dd3474fed8be523431cc51611",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
