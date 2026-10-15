@@ -1,0 +1,32 @@
+== SOS deploy Thu Oct 15 18:37:57 UTC 2026 ==
+npm warn deprecated rollup-plugin-inject@3.0.2: This package has been deprecated and is no longer maintained. Please use @rollup/plugin-inject.
+npm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
+
+ ⛅️ wrangler 3.114.17 (update available 4.151.0)
+------------------------------------------------
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mThe version of Wrangler you are using is now out-of-date.[0m
+
+  Please update to the latest version to prevent critical errors.
+  Run `npm install --save-dev wrangler@4` to update to the latest version.
+  After installation, run Wrangler with `npx wrangler`.
+
+
+Total Upload: 18.86 KiB / gzip: 6.05 KiB
+Worker Startup Time: 3 ms
+Your worker has access to the following bindings:
+- Durable Objects:
+  - HUB: Hub
+- KV Namespaces:
+  - GPS_STORE: 2900a1d9de0f49deac2359e558ba5783
+Uploaded sos (1.13 sec)
+Deployed sos triggers (0.39 sec)
+  https://sos.mihov-emil.workers.dev
+Current Version ID: c187d527-defc-4d80-a164-b9190a8f38ba
+
+Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+
+--- GET /health ---
+{"ok":true,"v":2}
+--- GET /admin/list без токен (очаква 401) ---
+500
