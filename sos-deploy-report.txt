@@ -1,17 +1,17 @@
-== SOS deploy Thu Oct 15 18:42:52 UTC 2026 ==
+== SOS deploy Sat Oct 17 16:52:52 UTC 2026 ==
   Please update to the latest version to prevent critical errors.
-Total Upload: 18.86 KiB / gzip: 6.05 KiB
+Total Upload: 25.42 KiB / gzip: 7.42 KiB
 Your worker has access to the following bindings:
   - HUB: Hub
   - GPS_STORE: 2900a1d9de0f49deac2359e558ba5783
-Uploaded sos (3.04 sec)
-Deployed sos triggers (0.33 sec)
-Current Version ID: 4e3f6c13-2130-456a-9bf5-0af6fa9e5739
+Uploaded sos (1.76 sec)
+Deployed sos triggers (0.13 sec)
+Current Version ID: df01f128-bbd2-4a22-8228-576b4bc11220
 
 --- GET /health ---
 
 [HTTP 000]
-{"ok":true,"v":2}
+{"ok":true,"v":3}
 [HTTP 200]
 
 --- GET /admin/list без токен (очаква 401) ---
@@ -23,8 +23,8 @@ Current Version ID: 4e3f6c13-2130-456a-9bf5-0af6fa9e5739
 --- POST /login с грешна парола (очаква 401) ---
 
 [HTTP 000]
-{"error":"грешен номер или парола"}
-[HTTP 401]
+{"error":"няма такъв път"}
+[HTTP 404]
 
 --- GET /ws без upgrade (очаква 426) ---
 
