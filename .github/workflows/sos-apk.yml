@@ -1,0 +1,131 @@
+name: SOS APK (подписано)
+
+# Живее тук, защото CLOUDFLARE_API_TOKEN е тайна на това репо (както deploy-sombra и deploy-sos).
+# Строи APK-то на emillion-lab/SOS, подписано с ПОСТОЯНЕН ключ, и го публикува като
+# релийз sos-apk-latest в това репо. Хората го свалят от https://sos.mihov-emil.workers.dev/SOS.apk
+#
+# Ключът за подписване:
+#  - създава се веднъж (при първо пускане) и стои САМО в Cloudflare KV namespace "sos-signing"
+#  - този namespace не е вързан към никой Worker — чете се само с API токена
+#  - никога не влиза в git, в лог или в отчета; паролата се маскира
+# Защо е важен: ANDROID_ID (по който приложението разпознава телефона) и обновяването
+# отгоре без деинсталиране зависят от един и същ ключ. Изгубен ключ = всички преинсталират.
+
+on:
+  push:
+    paths: ['.github/workflows/sos-apk.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch SOS source
+        run: |
+          git clone --depth 1 https://github.com/emillion-lab/SOS.git /tmp/sos
+          echo "SOS_SHA=$(git -C /tmp/sos rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Signing key from Cloudflare KV (create once)
+        env:
+          CF: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -e
+          R="$GITHUB_WORKSPACE/sos-apk-report.txt"
+          echo "== SOS APK $(date -u) · SOS@$SOS_SHA ==" > $R
+          API="https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/storage/kv/namespaces"
+          AUTH="Authorization: Bearer $CF"
+
+          NS=$(curl -s -H "$AUTH" "$API?per_page=100" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          if not d.get('success'): print('ERR', d.get('errors'), file=sys.stderr); sys.exit(1)
+          print(next((n['id'] for n in d['result'] if n['title']=='sos-signing'),''))")
+          if [ -z "$NS" ]; then
+            NS=$(curl -s -X POST -H "$AUTH" -H 'content-type: application/json' -d '{"title":"sos-signing"}' "$API" \
+              | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['result']['id'] if d.get('success') else '')")
+            [ -n "$NS" ] || { echo "KV namespace не се създаде — токенът има ли Workers KV Storage:Edit?" | tee -a $R; exit 1; }
+            echo "KV namespace sos-signing: създаден" >> $R
+          else
+            echo "KV namespace sos-signing: намерен" >> $R
+          fi
+
+          CODE=$(curl -s -o /tmp/ks.json -w '%{http_code}' -H "$AUTH" "$API/$NS/values/keystore")
+          if [ "$CODE" = "404" ]; then
+            PASS=$(openssl rand -hex 24)
+            echo "::add-mask::$PASS"
+            keytool -genkeypair -storetype PKCS12 -keystore /tmp/sos.p12 -alias sos -keyalg RSA -keysize 3072 \
+              -validity 36500 -storepass "$PASS" -keypass "$PASS" -dname "CN=SOS, O=emillion-lab, C=BG" 2>/dev/null
+            PASS="$PASS" python3 -c "
+          import json,base64,os
+          json.dump({'pass':os.environ['PASS'],'b64':base64.b64encode(open('/tmp/sos.p12','rb').read()).decode()},open('/tmp/ks.json','w'))"
+            OK=$(curl -s -X PUT -H "$AUTH" --data-binary @/tmp/ks.json "$API/$NS/values/keystore" | python3 -c "import json,sys;print(json.load(sys.stdin).get('success'))")
+            [ "$OK" = "True" ] || { echo "Ключът не се записа в KV — спирам, без билд" | tee -a $R; exit 1; }
+            echo "ключ за подписване: СЪЗДАДЕН НОВ и записан в KV" >> $R
+          elif [ "$CODE" = "200" ]; then
+            echo "ключ за подписване: взет от KV" >> $R
+          else
+            echo "KV върна HTTP $CODE — спирам, без да създавам нов ключ" | tee -a $R
+            exit 1
+          fi
+
+          PASS=$(python3 -c "import json;print(json.load(open('/tmp/ks.json'))['pass'])")
+          echo "::add-mask::$PASS"
+          python3 -c "import json,base64;open('/tmp/sos.p12','wb').write(base64.b64decode(json.load(open('/tmp/ks.json'))['b64']))"
+          rm -f /tmp/ks.json
+          echo "SOS_KEYSTORE_FILE=/tmp/sos.p12" >> $GITHUB_ENV
+          echo "SOS_KEYSTORE_PASS=$PASS" >> $GITHUB_ENV
+          FP=$(keytool -list -v -storetype PKCS12 -keystore /tmp/sos.p12 -storepass "$PASS" -alias sos 2>/dev/null | grep -m1 'SHA256:' | sed 's/.*SHA256: //')
+          echo "отпечатък на ключа (SHA-256): $FP" >> $R
+          echo "KEY_FP=$FP" >> $GITHUB_ENV
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build signed APK
+        run: |
+          set -o pipefail
+          export SOS_VERSION_CODE=$(TZ=Europe/Sofia date +%y%m%d%H)
+          echo "версия: $SOS_VERSION_CODE" >> sos-apk-report.txt
+          gradle -p /tmp/sos/android assembleDebug --no-daemon --console=plain 2>&1 | grep -v -i pass | tail -n 25
+          cp /tmp/sos/android/app/build/outputs/apk/debug/app-debug.apk SOS.apk
+          echo "размер: $(stat -c%s SOS.apk) байта" >> sos-apk-report.txt
+
+      - name: Verify signature matches the stored key
+        run: |
+          SIGNER=$(ls -d $ANDROID_HOME/build-tools/*/ | sort -V | tail -1)apksigner
+          APK_FP=$($SIGNER verify --print-certs SOS.apk | grep -m1 'SHA-256 digest' | sed 's/.*: //')
+          WANT=$(echo "$KEY_FP" | tr -d ':' | tr 'A-F' 'a-f')
+          echo "подпис на APK: $APK_FP" >> sos-apk-report.txt
+          if [ "$APK_FP" = "$WANT" ]; then echo "ПОДПИС: съвпада с постоянния ключ ✓" >> sos-apk-report.txt
+          else echo "ПОДПИС: НЕ съвпада — спирам" | tee -a sos-apk-report.txt; exit 1; fi
+
+      - name: Publish release sos-apk-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete sos-apk-latest -y --cleanup-tag || true
+          gh release create sos-apk-latest SOS.apk --title "SOS $(TZ=Europe/Sofia date +%d.%m.%Y\ %H:%M)" \
+            --notes "Помощ наоколо — подписано с постоянния ключ. Сваля се от https://sos.mihov-emil.workers.dev/SOS.apk (SOS@$SOS_SHA)"
+          echo "релийз: sos-apk-latest публикуван" >> sos-apk-report.txt
+          rm -f /tmp/sos.p12
+
+      - name: Commit report
+        if: always()
+        run: |
+          rm -f /tmp/sos.p12
+          git config user.name "ci"
+          git config user.email "ci@emillion-lab"
+          git add sos-apk-report.txt
+          git commit -m "sos apk report [skip ci]" || true
+          git pull --rebase --autostash || true
+          git push || true
