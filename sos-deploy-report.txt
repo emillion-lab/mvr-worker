@@ -1,34 +1,31 @@
-== SOS deploy Sat Oct 17 16:52:52 UTC 2026 ==
+== SOS deploy Sat Oct 17 17:55:48 UTC 2026 · SOS@8f2d40a ==
   Please update to the latest version to prevent critical errors.
-Total Upload: 25.42 KiB / gzip: 7.42 KiB
+Total Upload: 21.74 KiB / gzip: 6.43 KiB
 Your worker has access to the following bindings:
   - HUB: Hub
-  - GPS_STORE: 2900a1d9de0f49deac2359e558ba5783
-Uploaded sos (1.76 sec)
-Deployed sos triggers (0.13 sec)
-Current Version ID: df01f128-bbd2-4a22-8228-576b4bc11220
-
+Uploaded sos (1.62 sec)
+Deployed sos triggers (0.22 sec)
+Current Version ID: a01615dc-d2e9-4391-9ff4-b25953b87bc2
+админ ключ: СЪЗДАДЕН НОВ (KV sos-signing → admin-token)
+дължина: 48 знака
+Worker secret SOS_ADMIN_TOKEN: True []
 --- GET /health ---
+[HTTP 200] {"ok":true,"v":3}
+--- GET / (без линк към админ) ---
+[HTTP 200] <!doctype html><html lang="bg"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>SOS</title><style>
+:root{--bg:#fff;--fg:#111;--mut:#666;--red:#d32
+  ok: няма линк към админ
+--- GET /admin (страницата е махната, очаква 404) ---
+[HTTP 404] {"error":"няма такъв път"}
+--- GET /admin/list без ключ (очаква 401) ---
+[HTTP 401] {"error":"нямаш достъп"}
+--- GET /admin/list със собствения ключ (очаква 200) ---
+[HTTP 200] на линия 0 · устройства 0 · дневник 0 
 
-[HTTP 000]
-{"ok":true,"v":3}
-[HTTP 200]
-
---- GET /admin/list без токен (очаква 401) ---
-
-[HTTP 000]
-{"error":"нямаш достъп"}
-[HTTP 401]
-
---- POST /login с грешна парола (очаква 401) ---
-
-[HTTP 000]
-{"error":"няма такъв път"}
-[HTTP 404]
-
+--- POST /register невалидно (очаква 400) ---
+[HTTP 400] {"error":"невалидно устройство"}
+--- GET /SOS.apk (очаква 302) ---
+[HTTP 302] 
 --- GET /ws без upgrade (очаква 426) ---
-
-[HTTP 000]
-{"error":"трябва websocket"}
-[HTTP 426]
-
+[HTTP 426] {"error":"трябва websocket"}
