@@ -1,4 +1,4 @@
-== Deploy report Sat Oct 17 16:52:48 UTC 2026 ==
+== Deploy report Sat Oct 17 17:55:49 UTC 2026 ==
 --- pubId подмяна още ли е в билда (очаква се 0) ---
 0
 0
@@ -7,12 +7,12 @@
 {
   "result": {
     "created_on": "2026-06-28T05:51:07.422678Z",
-    "modified_on": "2026-10-17T16:52:48.640356Z",
+    "modified_on": "2026-10-17T17:55:49.475834Z",
     "id": "mvr-proxy",
     "tag": "9a9b0c0433b9459b87cca87aa39a3f3c",
     "entry_point": "worker.js",
     "tags": null,
-    "deployment_id": "9fe9d699ad16495f8e50e8fa1d9028af",
+    "deployment_id": "3532a9d07c0441c59b6c40b42e494fe0",
     "tail_consumers": null,
     "logpush": false,
     "has_assets": false,
@@ -37,6 +37,6 @@
 --- live /flights/SOF (само статусът, без списъка) ---
 HTTP 200
 --- live /risk (дневно, часово, следващ пик) ---
-{"ok":true,"coefficient":0.93,"score":3,"level":0,"label":"Спокойна среда","car_score":3,"harm_score":5,"harm_coefficient":1.09,"day_score":3,"day_harm_score":5,"hour_score":5,"hour_harm_score":7,"hour_factor":1.12,"hour_reason":"peak","hour_label":"пиков час","next_peak":{"name":"следобеден пик","from":16,"to":19,"active":true,"in_hours":0,"score":5,"harm_score":7},"factors":{"rain":0.2,"snow":0,"cloud":31,"tmin":2.4,"tmax":12,"wind":14.5,"dow":6,"mon":10,"hour":19,"rush":true},"model":"KAT v3 · МВР 2015–2025","kat_url":"https://emillion-lab.github.io/KAT/","updated":1792255979717}
+{"ok":true,"coefficient":0.93,"score":3,"level":0,"label":"Спокойна среда","car_score":3,"harm_score":5,"harm_coefficient":1.09,"day_score":3,"day_harm_score":5,"hour_score":3,"hour_harm_score":5,"hour_factor":1,"hour_reason":null,"hour_label":null,"next_peak":{"name":"нощен прозорец","from":22,"to":4,"active":false,"in_hours":2,"score":4,"harm_score":6},"factors":{"rain":0.2,"snow":0,"cloud":31,"tmin":2.4,"tmax":12,"wind":14.5,"dow":6,"mon":10,"hour":20,"rush":false},"model":"KAT v3 · МВР 2015–2025","kat_url":"https://emillion-lab.github.io/KAT/","updated":1792259524817}
 --- live /gps (трябва да показва истинско driver_id) ---
 {"ok":true,"count":3,"online":0,"drivers":[{"driver_id":"359878592888","online":false,"updated_at":null,"lat":42.6245,"lng":23.3521,"approx":true,"at_base":true},{"driver_id":"359888588502","online":false,"updated_at":null,"lat":42.66779,"lng":23.2817,"approx":true,"at_base":true},{"driver_id":"359897644448","online":false,"updated_at":null,"lat":42.66611,"lng":23.35537,"approx":true,"at_base":true}]}
