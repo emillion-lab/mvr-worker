@@ -3,7 +3,12 @@ name: Deploy SOS
 # Живее тук, защото CLOUDFLARE_API_TOKEN е тайна на това репо (както deploy-sombra).
 # Не пипа mvr-proxy — качва само Worker-а "sos" с код от репото SOS.
 # Wrangler, не суров API: Durable Object миграцията и workers.dev адресът искат го.
-# Админ токенът е общ с fish.taxi (KV admin:token в GPS_STORE) — нищо ново за слагане.
+#
+# Админ ключът на SOS е СОБСТВЕН (не е този на fish.taxi):
+#  - създава се веднъж и се пази в Cloudflare KV namespace "sos-signing", ключ "admin-token"
+#  - оттам се слага като Worker secret SOS_ADMIN_TOKEN при всяко качване
+#  - никога не се печата; виждаш го в Cloudflare dashboard → Storage & Databases → KV → sos-signing → admin-token
+#  - нов ключ: изтрий admin-token в KV и пусни този workflow
 
 on:
   push:
@@ -23,25 +28,76 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/emillion-lab/SOS.git /tmp/sos
           node --check /tmp/sos/worker/src/worker.js
-          grep -q "adminToken()" /tmp/sos/worker/src/worker.js || { echo "стар код — спирам"; exit 1; }
+          grep -q "SOS_ADMIN_TOKEN" /tmp/sos/worker/src/worker.js || { echo "стар код — спирам"; exit 1; }
+          node /tmp/sos/worker/test/hub.test.mjs | tail -1
 
       - name: Deploy with wrangler
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           R="$GITHUB_WORKSPACE/sos-deploy-report.txt"
-          echo "== SOS deploy $(date -u) ==" > $R
+          echo "== SOS deploy $(date -u) · SOS@$(git -C /tmp/sos rev-parse --short HEAD) ==" > $R
           cd /tmp/sos/worker
           set -o pipefail
-          npx --yes wrangler@3 deploy 2>&1 | grep -v -i token | grep -E "Upload|Deployed|bindings|HUB|GPS_STORE|Version|ERROR|error" | tee -a $R
-          echo "" >> $R
+          npx --yes wrangler@3 deploy 2>&1 | grep -v -i token | grep -E "Upload|Deployed|bindings|HUB|Version|ERROR|error" | tee -a $R
+
+      - name: Admin key (create once, keep in KV, set as Worker secret)
+        env:
+          CF: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -e
+          R="$GITHUB_WORKSPACE/sos-deploy-report.txt"
+          ACC=74820d71c551391ce31d309c2fcb091c
+          API="https://api.cloudflare.com/client/v4/accounts/$ACC"
+          AUTH="Authorization: Bearer $CF"
+          NS=$(curl -s -H "$AUTH" "$API/storage/kv/namespaces?per_page=100" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          print(next((n['id'] for n in d.get('result') or [] if n['title']=='sos-signing'),''))")
+          if [ -z "$NS" ]; then
+            NS=$(curl -s -X POST -H "$AUTH" -H 'content-type: application/json' -d '{"title":"sos-signing"}' "$API/storage/kv/namespaces" \
+              | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['result']['id'] if d.get('success') else '')")
+          fi
+          [ -n "$NS" ] || { echo "KV namespace sos-signing липсва" | tee -a $R; exit 1; }
+
+          CODE=$(curl -s -o /tmp/adm.txt -w '%{http_code}' -H "$AUTH" "$API/storage/kv/namespaces/$NS/values/admin-token")
+          if [ "$CODE" = "404" ]; then
+            openssl rand -hex 24 > /tmp/adm.txt
+            OK=$(curl -s -X PUT -H "$AUTH" --data-binary @/tmp/adm.txt "$API/storage/kv/namespaces/$NS/values/admin-token" | python3 -c "import json,sys;print(json.load(sys.stdin).get('success'))")
+            [ "$OK" = "True" ] || { echo "админ ключът не се записа в KV" | tee -a $R; exit 1; }
+            echo "админ ключ: СЪЗДАДЕН НОВ (KV sos-signing → admin-token)" >> $R
+          elif [ "$CODE" = "200" ]; then
+            echo "админ ключ: взет от KV sos-signing → admin-token" >> $R
+          else
+            echo "KV върна HTTP $CODE — не пипам админ ключа" | tee -a $R; exit 1
+          fi
+          T=$(tr -d '\n\r ' < /tmp/adm.txt); rm -f /tmp/adm.txt
+          echo "::add-mask::$T"
+          echo "дължина: ${#T} знака" >> $R
+          T="$T" python3 -c "import json,os;print(json.dumps({'name':'SOS_ADMIN_TOKEN','text':os.environ['T'],'type':'secret_text'}))" > /tmp/sec.json
+          OK=$(curl -s -X PUT -H "$AUTH" -H 'content-type: application/json' --data-binary @/tmp/sec.json "$API/workers/scripts/sos/secrets" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('success'), [e.get('message') for e in d.get('errors') or []])")
+          rm -f /tmp/sec.json
+          echo "Worker secret SOS_ADMIN_TOKEN: $OK" >> $R
+          echo "ADMTOK=$T" >> $GITHUB_ENV
+
+      - name: Probes
+        run: |
+          R="$GITHUB_WORKSPACE/sos-deploy-report.txt"
           sleep 8
           U=https://sos.mihov-emil.workers.dev
-          probe() { echo "--- $1 $2 ---" >> $R; shift; curl -s -m 20 -w "\n[HTTP %{http_code}]\n" "$@" | head -c 600 >> $R; echo "" >> $R; }
-          probe GET /health "$U/health"
-          probe GET "/admin/list без токен (очаква 401)" "$U/admin/list"
-          probe POST "/login с грешна парола (очаква 401)" -X POST -H 'content-type: application/json' -d '{"plate":"CA0000XX","password":"x"}' "$U/login"
-          probe GET "/ws без upgrade (очаква 426)" "$U/ws?token=x"
+          probe() { echo "--- $1 ---" >> $R; shift; curl -s -m 20 -o /tmp/body -w "[HTTP %{http_code}] " "$@" >> $R; head -c 200 /tmp/body >> $R; echo "" >> $R; }
+          probe "GET /health" "$U/health"
+          probe "GET / (без линк към админ)" "$U/"
+          grep -q '/admin' /tmp/body && echo "  !!! началната страница още има /admin" >> $R || echo "  ok: няма линк към админ" >> $R
+          probe "GET /admin (страницата е махната, очаква 404)" "$U/admin"
+          probe "GET /admin/list без ключ (очаква 401)" "$U/admin/list"
+          echo "--- GET /admin/list със собствения ключ (очаква 200) ---" >> $R
+          curl -s -m 20 -o /tmp/body -w "[HTTP %{http_code}] " -H "x-admin: $ADMTOK" "$U/admin/list" >> $R
+          python3 -c "import json;d=json.load(open('/tmp/body'));print('на линия',d.get('online'),'· устройства',len(d.get('devices',[])),'· дневник',len(d.get('log',[])), d.get('error',''))" >> $R 2>&1 || head -c 200 /tmp/body >> $R
+          echo "" >> $R
+          probe "POST /register невалидно (очаква 400)" -X POST -H 'content-type: application/json' -d '{"device":"x"}' "$U/register"
+          probe "GET /SOS.apk (очаква 302)" "$U/SOS.apk"
+          probe "GET /ws без upgrade (очаква 426)" "$U/ws?token=x"
 
       - name: Commit report
         if: always()
