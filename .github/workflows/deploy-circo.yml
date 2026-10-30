@@ -1,0 +1,68 @@
+name: Deploy CIRCO
+
+# Живее тук, защото CLOUDFLARE_API_TOKEN е тайна на това репо (както deploy-sombra.yml).
+# Не пипа mvr-proxy — качва само Worker-а "circo" с код от репото CIRCO (папка worker/).
+# Wrangler, а не суров CF API: Worker-ът има Durable Objects с миграции.
+
+on:
+  push:
+    paths: ['.github/workflows/deploy-circo.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch CIRCO (fresh clone, no CDN cache)
+        run: |
+          git clone --depth 1 https://github.com/emillion-lab/CIRCO.git /tmp/circo
+          echo "CIRCO at $(git -C /tmp/circo rev-parse --short HEAD)"
+
+      - name: Rude-word list still works
+        working-directory: /tmp/circo
+        run: |
+          node --input-type=module -e "
+          const { checkText } = await import('./worker/src/words.js');
+          const must = { 'путка': 1, 'pi4ka': 1, 'небе и себе си': 0, 'курс по английски': 0, 'faggot': 2 };
+          for (const [t, l] of Object.entries(must)) if (checkText(t).level !== l) { console.error('wrong level for', t); process.exit(1); }
+          console.log('words ok');"
+
+      - name: Deploy with wrangler
+        working-directory: /tmp/circo/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 74820d71c551391ce31d309c2fcb091c
+        run: |
+          set -o pipefail
+          npx --yes wrangler@4 deploy 2>&1 | tee /tmp/deploy.log
+
+      - name: Report
+        if: always()
+        run: |
+          R="circo-deploy-report.txt"
+          echo "== CIRCO deploy $(date -u) ==" > $R
+          echo "CIRCO commit: $(git -C /tmp/circo rev-parse --short HEAD 2>/dev/null)" >> $R
+          echo "--- wrangler (tail) ---" >> $R
+          tail -n 25 /tmp/deploy.log >> $R 2>/dev/null || echo "no deploy log" >> $R
+          sleep 8
+          echo "--- GET /health ---" >> $R
+          curl -s https://circo.mihov-emil.workers.dev/health | head -c 300 >> $R
+          echo "" >> $R
+          echo "--- GET /api/rooms ---" >> $R
+          curl -s https://circo.mihov-emil.workers.dev/api/rooms | head -c 400 >> $R
+          echo "" >> $R
+          git config user.name "ci"
+          git config user.email "ci@emillion-lab"
+          git add $R
+          git commit -m "circo deploy report [skip ci]" || true
+          git pull --rebase --autostash || true
+          git push || true
