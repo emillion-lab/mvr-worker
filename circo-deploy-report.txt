@@ -1,23 +1,22 @@
-== CIRCO deploy Fri Oct 30 07:26:03 UTC 2026 ==
-CIRCO commit: ee7bf2a
+== CIRCO deploy Fri Oct 30 07:39:41 UTC 2026 ==
+CIRCO commit: 404ab46
 --- wrangler (tail) ---
 
  ⛅️ wrangler 4.156.0
 ────────────────────
-Total Upload: 24.54 KiB / gzip: 7.45 KiB
-Worker Startup Time: 1 ms
+Total Upload: 29.08 KiB / gzip: 8.69 KiB
 Your Worker has access to the following bindings:
 Binding              Resource            
 env.HUB (Hub)        Durable Object      
 env.ROOM (Room)      Durable Object      
 
-Uploaded circo (4.11 sec)
-Deployed circo triggers (1.88 sec)
+Uploaded circo (1.84 sec)
+Deployed circo triggers (0.40 sec)
   https://circo.mihov-emil.workers.dev
-Current Version ID: d9f1e434-a454-4687-9a67-e9e95baa8e49
+Current Version ID: 1301aff0-1ac9-4431-bd21-f8e1212e6d06
 
 Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
 --- GET /health ---
-{"ok":true,"service":"circo","time":1793345171201}
+{"ok":true,"service":"circo","time":1793345989788}
 --- GET /api/rooms ---
 {"rooms":[{"id":"sofia","official":true,"open":true,"people":0},{"id":"plovdiv","official":true,"open":true,"people":0},{"id":"london","official":true,"open":true,"people":0},{"id":"global","official":true,"open":true,"people":0},{"id":"night","official":true,"open":true,"people":0},{"id":"dating","official":true,"open":false,"people":0},{"id":"confessions","official":true,"open":false,"people":0}
