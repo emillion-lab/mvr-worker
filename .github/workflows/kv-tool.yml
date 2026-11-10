@@ -1,17 +1,27 @@
 name: KV Tool
 
+# ВНИМАНИЕ: репото е ПУБЛИЧНО. Всичко, което стигне до kv-report.txt, и
+# всички входове на този workflow (страницата на рън-а) се виждат от всеки.
+# 04.07.2026 така изтече admin:password. Затова (10.11.2026):
+#  - get пише стойност само за кешове и броячи (SAFE_PREFIXES); за всичко
+#    друго — дължина и SHA-256, без стойността;
+#  - put не пише стойността в отчета, а само дали проверката съвпада;
+#  - put на ключове, които приличат на тайни или лични данни, се отказва:
+#    самият вход щеше да остане публичен на страницата на рън-а;
+#  - bindings маха текстовете на plain_text променливите (EMIL_PROFILE).
+
 on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'get / delete / put / list'
+        description: 'get / delete / put / list / bindings / account / listns'
         required: true
       key:
         description: 'KV key'
         required: false
         default: ''
       value:
-        description: 'value (само за put)'
+        description: 'value (само за put; НЕ за тайни — входът е публичен)'
         required: false
         default: ''
 
@@ -26,41 +36,75 @@ jobs:
       - name: Run KV operation
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          A: ${{ github.event.inputs.action }}
+          KEY: ${{ github.event.inputs.key }}
+          VAL: ${{ github.event.inputs.value }}
         run: |
-          BASE="https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/storage/kv/namespaces/2900a1d9de0f49deac2359e558ba5783"
-          A="${{ github.event.inputs.action }}"
-          K=$(python3 -c "import urllib.parse;print(urllib.parse.quote('${{ github.event.inputs.key }}',safe=''))")
+          ACC="https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c"
+          BASE="$ACC/storage/kv/namespaces/2900a1d9de0f49deac2359e558ba5783"
+          K=$(python3 -c "import os,urllib.parse;print(urllib.parse.quote(os.environ['KEY'],safe=''))")
           R="kv-report.txt"
-          echo "== KV $A ${{ github.event.inputs.key }} $(date -u) ==" > $R
+          echo "== KV $A $KEY $(date -u) ==" > $R
+
+          # Кешове и броячи — безопасни за показване. Всичко друго може да е
+          # токен, парола, телефон, GPS или заявка на шофьор.
+          SAFE_PREFIXES="flights: scrape: tt: risk: stats: adb: traffic"
+          is_safe() { for p in $SAFE_PREFIXES; do case "$KEY" in "$p"*) return 0;; esac; done; return 1; }
+          looks_secret() { echo "$KEY" | grep -qiE 'token|pass|secret|admin|claim|key|^rt:|^driver:|^base:|^pending:|^approved:|^presence:'; }
+          digest() { python3 -c "import sys,hashlib;d=sys.stdin.buffer.read();print(f'дължина={len(d)} sha256={hashlib.sha256(d).hexdigest()[:16]}')"; }
+
           if [ "$A" = "bindings" ]; then
             for W in abrp bob gh-admin mvr-proxy starter; do
               echo "=== $W settings ===" >> $R
-              curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/workers/scripts/$W/settings" >> $R
+              curl -s -H "Authorization: Bearer $CF_TOKEN" "$ACC/workers/scripts/$W/settings" \
+                | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for b in (d.get('result') or {}).get('bindings') or []:
+              if 'text' in b: b['text']=f'<скрито, {len(str(b[\"text\"]))} знака>'
+          print(json.dumps(d,ensure_ascii=False,indent=2))" >> $R
               echo "" >> $R
               echo "=== $W schedules ===" >> $R
-              curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/workers/scripts/$W/schedules" >> $R
+              curl -s -H "Authorization: Bearer $CF_TOKEN" "$ACC/workers/scripts/$W/schedules" >> $R
               echo "" >> $R
             done
           elif [ "$A" = "account" ]; then
             echo "--- KV NAMESPACES ---" >> $R
-            curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/storage/kv/namespaces" >> $R
+            curl -s -H "Authorization: Bearer $CF_TOKEN" "$ACC/storage/kv/namespaces" >> $R
             echo "" >> $R
             echo "--- WORKERS ---" >> $R
-            curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/workers/scripts" >> $R
+            curl -s -H "Authorization: Bearer $CF_TOKEN" "$ACC/workers/scripts" \
+              | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for w in d.get('result') or []: print(w.get('id'), w.get('modified_on'))" >> $R
           elif [ "$A" = "listns" ]; then
-            NS="${{ github.event.inputs.key }}"
-            curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/74820d71c551391ce31d309c2fcb091c/storage/kv/namespaces/$NS/keys?limit=1000" >> $R
+            curl -s -H "Authorization: Bearer $CF_TOKEN" "$ACC/storage/kv/namespaces/$KEY/keys?limit=1000" >> $R
           elif [ "$A" = "get" ]; then
-            curl -s -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" >> $R
+            if is_safe; then
+              curl -s -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" | head -c 20000 >> $R
+            else
+              echo "стойността не се записва (репото е публично):" >> $R
+              curl -s -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" | digest >> $R
+            fi
           elif [ "$A" = "delete" ]; then
             curl -s -X DELETE -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" >> $R
           elif [ "$A" = "put" ]; then
-            curl -s -X PUT -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" --data '${{ github.event.inputs.value }}' >> $R
-            echo "" >> $R
-            echo "--- verify get ---" >> $R
-            curl -s -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" >> $R
+            if looks_secret; then
+              echo "ОТКАЗАНО: '$KEY' прилича на тайна или лични данни. Входът на този" >> $R
+              echo "workflow се вижда публично. Сложи го през Cloudflare dashboard или" >> $R
+              echo "през /admin/kv в админ панела (там admin:token е забранен нарочно)." >> $R
+            else
+              printf '%s' "$VAL" | curl -s -X PUT -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" --data-binary @- >> $R
+              echo "" >> $R
+              W=$(printf '%s' "$VAL" | digest)
+              G=$(curl -s -H "Authorization: Bearer $CF_TOKEN" "$BASE/values/$K" | digest)
+              [ "$W" = "$G" ] && echo "проверка: съвпада ($G)" >> $R || echo "проверка: НЕ съвпада (пратено $W, прочетено $G)" >> $R
+            fi
           elif [ "$A" = "list" ]; then
-            curl -s -H "Authorization: Bearer $CF_TOKEN" "$BASE/keys?limit=100" >> $R
+            curl -s -H "Authorization: Bearer $CF_TOKEN" "$BASE/keys?limit=100&prefix=$K" >> $R
+          else
+            echo "непознато действие: $A" >> $R
           fi
           echo "" >> $R
           git config user.name "ci"; git config user.email "ci@fish.taxi"
