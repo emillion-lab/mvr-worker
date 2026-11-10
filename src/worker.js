@@ -143,6 +143,61 @@ async function checkToken(env, driver_id, token) {
   return adminSafeEq(stored, token);
 }
 
+/* ═══ FT-KV-BUDGET-V1 (10.11.2026) ═══
+   Безплатният KV: 1000 записа и 1000 list на ден. Виж patch_kv_budget.py. */
+const TOK_MEM_MS = 2 * 60 * 1000;      // списъкът с шофьори в паметта
+const TOK_KV_MS  = 30 * 60 * 1000;     // и в KV (idx:tokens)
+const GPS_MEM_MS = 5 * 1000;           // готовият /gps отговор в паметта
+let _tokIds = null, _tokAt = 0;
+let _gpsBody = null, _gpsAt = 0;
+
+async function tokenIds(env) {
+  const now = Date.now();
+  if (_tokIds && now - _tokAt < TOK_MEM_MS) return _tokIds;
+  try {
+    const raw = await env.GPS_STORE.get('idx:tokens');
+    if (raw) {
+      const j = JSON.parse(raw);
+      if (j && Array.isArray(j.ids) && now - (j.at || 0) < TOK_KV_MS) {
+        _tokIds = j.ids; _tokAt = now;
+        return _tokIds;
+      }
+    }
+  } catch (e) {}
+  const ids = [];
+  let cursor;
+  do {
+    const r = await env.GPS_STORE.list({ prefix: 'token:', cursor });
+    for (const k of r.keys) ids.push(k.name.slice('token:'.length));
+    cursor = r.list_complete ? null : r.cursor;
+  } while (cursor);
+  _tokIds = ids; _tokAt = now;
+  try { await env.GPS_STORE.put('idx:tokens', JSON.stringify({ at: now, ids })); } catch (e) {}
+  return ids;
+}
+
+async function dropTokenIdx(env) {
+  _tokIds = null; _gpsBody = null;
+  try { await env.GPS_STORE.delete('idx:tokens'); } catch (e) {}
+}
+
+/* Лимит в паметта на инстанцията: не е глобален, но спира повторения
+   от един адрес и случайни вълни, без да харчи KV. */
+const _rl = new Map();
+function overLimit(request, bucket, perIp, perInstance, windowMs) {
+  const now = Date.now();
+  const ip = request.headers.get('CF-Connecting-IP') || 'x';
+  if (_rl.size > 5000) _rl.clear();
+  let over = false;
+  for (const [k, max] of [[bucket + '|' + ip, perIp], [bucket + '|*', perInstance]]) {
+    let e = _rl.get(k);
+    if (!e || now - e.t > windowMs) { e = { t: now, n: 0 }; _rl.set(k, e); }
+    e.n++;
+    if (e.n > max) over = true;
+  }
+  return over;
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -374,9 +429,10 @@ export default {
         } catch (e) {}
         try {
           await env.GPS_STORE.put(`driver:${did}`, JSON.stringify(data), { expirationTtl: 300 });
+          _gpsBody = null;
         } catch (e) {
           if (String(e).includes('limit')) {
-            return new Response(JSON.stringify({ error: 'Дневният лимит за GPS записи е изчерпан (Cloudflare free план). Работи отново след 03:00 ч. българско време, или трайно с Workers Paid ($5/мес).', quota: true }), { status: 503, headers: CORS });
+            return new Response(JSON.stringify({ error: 'Дневният лимит за GPS записи е изчерпан (Cloudflare free план). Работи отново след 00:00 UTC (02:00 зимно / 03:00 лятно българско време), или трайно с Workers Paid ($5/мес).', quota: true }), { status: 503, headers: CORS });
           }
           throw e;
         }
@@ -388,34 +444,28 @@ export default {
 
     if (path === '/gps' && request.method === 'GET') {
       try {
-        const list = await env.GPS_STORE.list({ prefix: 'driver:' });
-        const drivers = [];
-        const seen = new Set();
-        const now = Date.now();
-        for (const key of list.keys) {
-          const raw = await env.GPS_STORE.get(key.name);
-          if (!raw) continue;
-          const d = JSON.parse(raw);
-          d.online = d.online && (now - d.updated_at) < OFFLINE_AFTER_MS;
-          /* дори да не е натиснат СТОП — щом е офлайн, точката се маскира */
-          seen.add(String(d.driver_id));
-          const pub = await maskIfOffline(env, d);
-          /* FT-PUBID-REVERT-V1: истинско driver_id, както преди 26 авг.
-             Псевдонимът е спрян до обновяване на фронтенда. */
-          drivers.push(pub);
+        /* FT-KV-BUDGET-V1: шофьорите по token: списъка (кеширан), без list
+           на всяка заявка. Онлайн/запис първи, после призраците — както преди. */
+        const nowMs = Date.now();
+        if (_gpsBody && nowMs - _gpsAt < GPS_MEM_MS) {
+          return new Response(_gpsBody, { headers: { ...CORS, 'X-Cache': 'MEM' } });
         }
-        /* FT-GPS-GHOST-V1: driver:{id} изтича (300 s / 24 ч след СТОП).
-           Без него шофьорът падаше в центъра. Всеки с token: се връща
-           офлайн на базата си, или на разпръснатата точка. */
-        try {
-          const toks = await env.GPS_STORE.list({ prefix: 'token:' });
-          for (const k of toks.keys) {
-            const did = k.name.slice('token:'.length);
-            if (!/^359\d{8,9}$/.test(did) || seen.has(did)) continue;
-            drivers.push(await maskIfOffline(env, { driver_id: did, online: false, updated_at: null }));
+        const ids = await tokenIds(env);
+        const drivers = [], ghosts = [];
+        for (const id of ids) {
+          const raw = await env.GPS_STORE.get(`driver:${id}`);
+          if (raw) {
+            const d = JSON.parse(raw);
+            d.online = d.online && (nowMs - d.updated_at) < OFFLINE_AFTER_MS;
+            drivers.push(await maskIfOffline(env, d));
+          } else if (/^359\d{8,9}$/.test(id)) {
+            ghosts.push(await maskIfOffline(env, { driver_id: id, online: false, updated_at: null }));
           }
-        } catch (e) {}
-        return new Response(JSON.stringify({ ok: true, count: drivers.length, online: drivers.filter(d => d.online).length, drivers }), { headers: CORS });
+        }
+        const all = drivers.concat(ghosts);
+        const body = JSON.stringify({ ok: true, count: all.length, online: all.filter(d => d.online).length, drivers: all });
+        _gpsBody = body; _gpsAt = nowMs;
+        return new Response(body, { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
       }
@@ -692,7 +742,7 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
           const driverToken = genToken();
           record.driver_id = phoneId;
           record.token = driverToken;
-          await env.GPS_STORE.put(`token:${phoneId}`, driverToken);
+          await env.GPS_STORE.put(`token:${phoneId}`, driverToken); await dropTokenIdx(env);
           await env.GPS_STORE.put(`claim:${id}`, JSON.stringify({ driver_id: phoneId, token: driverToken }));
           await env.GPS_STORE.put(`approved:${id}`, JSON.stringify(record));
           await env.GPS_STORE.delete(`pending:${id}`);
@@ -741,7 +791,7 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
         const record = { id, name, phone, car: car || '', plate: plate || '', city: 'sofia',
           status: 'approved', driver_id: phoneId, token: driverToken,
           created_at: Date.now(), approved_at: Date.now() };
-        await env.GPS_STORE.put(`token:${phoneId}`, driverToken);
+        await env.GPS_STORE.put(`token:${phoneId}`, driverToken); await dropTokenIdx(env);
         await env.GPS_STORE.put(`approved:${id}`, JSON.stringify(record));
         return new Response(JSON.stringify({ ok: true, driver_id: phoneId, token: driverToken }), { headers: CORS });
       } catch (e) {
@@ -761,7 +811,7 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
         const existing = await env.GPS_STORE.get(`token:${phoneId}`);
         if (!existing) return new Response(JSON.stringify({ error: 'Driver not found' }), { status: 404, headers: CORS });
         const driverToken = genToken();
-        await env.GPS_STORE.put(`token:${phoneId}`, driverToken);
+        await env.GPS_STORE.put(`token:${phoneId}`, driverToken); await dropTokenIdx(env);
         return new Response(JSON.stringify({ ok: true, driver_id: phoneId, token: driverToken }), { headers: CORS });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
@@ -777,7 +827,7 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
         }
         const phoneId = normPhone(driver_id);
-        await env.GPS_STORE.delete(`token:${phoneId}`);
+        await env.GPS_STORE.delete(`token:${phoneId}`); await dropTokenIdx(env);
         await env.GPS_STORE.delete(`driver:${phoneId}`);
         const list = await env.GPS_STORE.list({ prefix: 'approved:' });
         for (const key of list.keys) {
@@ -984,6 +1034,9 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
     // ── Analytics beacon (без бисквитки, без трети страни) ──
     if (path === '/track' && request.method === 'POST') {
       try {
+        if (overLimit(request, 'track', 30, 300, 10 * 60 * 1000)) {
+          return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: CORS });
+        }
         const body = await request.json();
         const ev = String(body.event || '').replace(/[^a-z_]/g, '').slice(0, 24);
         if (!ev) return new Response(JSON.stringify({ ok: false }), { status: 400, headers: CORS });
@@ -1000,6 +1053,9 @@ if(localStorage.getItem('ftp'))document.getElementById('pass').value=localStorag
     // ── Анонимно клиентско присъствие (загрубено, TTL 10 мин) ──
     if (path === '/presence' && request.method === 'POST') {
       try {
+        if (overLimit(request, 'presence', 3, 120, 10 * 60 * 1000)) {
+          return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: CORS });
+        }
         const body = await request.json();
         let { lat, lng } = body;
         lat = Math.round(parseFloat(lat) * 1000) / 1000; // ~110 м
