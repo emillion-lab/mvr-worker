@@ -38,6 +38,8 @@ jobs:
           python3 patch_pubid_revert.py
           # KV бюджет: /gps без list на всяка заявка, лимит на /presence и /track — idempotent
           python3 patch_kv_budget.py
+          # „Моят профил“: POST /driver/profile → workflow във FISHTAXI — idempotent
+          python3 patch_driver_profile.py
           node --check src/worker.js && echo "syntax OK"
           # ако скриптът е добавил нещо, върни го в repo-то
           if ! git diff --quiet src/worker.js; then
