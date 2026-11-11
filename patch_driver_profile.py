@@ -17,8 +17,14 @@ import sys
 P = 'src/worker.js'
 MARK = 'FT-DRIVER-PROFILE-V1'
 s = open(P, encoding='utf-8').read()
+OLD_L = "const LANGS = ['bg','en','ru','de','fr','tr','it','es'];"
+NEW_L = "const LANGS = ['bg','en','ru','de','fr','tr','it','es','cs','ar','zh'];"
 if MARK in s:
-    print('FT-DRIVER-PROFILE-V1: вече е приложен — SKIP')
+    if OLD_L in s:   # 11.11.2026: чешки, арабски, китайски — както на сайта
+        open(P, 'w', encoding='utf-8').write(s.replace(OLD_L, NEW_L))
+        print('FT-DRIVER-PROFILE-V1: езиците разширени (cs, ar, zh)')
+    else:
+        print('FT-DRIVER-PROFILE-V1: вече е приложен — SKIP')
     sys.exit(0)
 
 ANCHOR = "    if (path === '/gps' && request.method === 'POST') {"
@@ -52,7 +58,7 @@ BLOCK = r"""    /* ═══ FT-DRIVER-PROFILE-V1 ═══ шофьорът с�
         const BOOL = ['ac','music','silent_ok','talk_ok','calm_ok','usb','streaming','petfriendly','childok','nosmoker','terminal','panoroof','legroom',
           'music_pop','music_chalga','music_rock','music_classical','music_jazz','music_electronic','music_chillout','music_lounge'];
         const TRI = ['airport','longdist','night','wheelchair'];
-        const LANGS = ['bg','en','ru','de','fr','tr','it','es'];
+        const LANGS = ['bg','en','ru','de','fr','tr','it','es','cs','ar','zh'];
         const src = (body.fields && typeof body.fields === 'object') ? body.fields : {};
         const out = {};
         for (const k of BOOL) if (typeof src[k] === 'boolean') out[k] = src[k];
